@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Lab: build a RAG Q&A assistant over company policy docs, from scratch. Full brief + 100-pt rubric: `docs/lab-brief.md` (source of truth — check it before claiming a part is done). Personal dev preferences: `CLAUDE.local.md` (gitignored).
+Lab: build a RAG Q&A assistant over company policy docs, from scratch. Full brief + 100-pt rubric: `plan.local.md` (gitignored) (source of truth — check it before claiming a part is done). Personal dev preferences: `CLAUDE.local.md` (gitignored).
 Corpus: `data/policies/` (5 docs; `expense_reimbursement_policy_2023.md` is the PLANTED stale duplicate — see `docs/data-quality-issue.md`). Never "fix" it.
 
 ## Stack
