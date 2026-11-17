@@ -14,7 +14,9 @@ def test_find_heading_prefers_heading_inside_chunk_then_nearest_above():
     second_heading_start = text.index("## Second")
     beta_start = text.index("beta")
 
-    chunk_spanning_second_heading = find_heading(text, second_heading_start - 3, len(text))
+    chunk_spanning_second_heading = find_heading(
+        text, second_heading_start - 3, len(text)
+    )
     chunk_after_all_headings = find_heading(text, beta_start, len(text))
     text_without_headings = find_heading("no headings here", 0, 16)
 
