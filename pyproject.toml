@@ -9,8 +9,8 @@ authors = [
 requires-python = ">=3.12"
 dependencies = []
 
-[project.scripts]
-rag-from-scratch = "rag_from_scratch:main"
+[tool.uv.build-backend]
+module-name = "rag"
 
 [build-system]
 requires = ["uv_build>=0.12.23,<0.13.0"]
@@ -19,5 +19,26 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = [
     "pytest>=9.2.0",
+    "pytest-cov>=7.1.0",
     "ruff>=0.17.5",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"             # short summary of failures/skips
+markers = [
+    "llm: calls a real LLM API (slow, needs a key)",
+]
+
+[tool.coverage.run]
+source = ["rag"]            # or ["rag_from_scratch"] if you keep src/
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+# fail_under = 70           # turn on once real code + tests exist
+exclude_also = [
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
 ]
