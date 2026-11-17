@@ -2613,6 +2613,7 @@ source = { editable = "." }
 dependencies = [
     { name = "chromadb" },
     { name = "pydantic" },
+    { name = "python-dotenv" },
     { name = "sentence-transformers" },
 ]
 
@@ -2627,6 +2628,7 @@ dev = [
 requires-dist = [
     { name = "chromadb", specifier = ">=1.5.9" },
     { name = "pydantic", specifier = ">=2.14.3" },
+    { name = "python-dotenv", specifier = ">=1.2.4" },
     { name = "sentence-transformers", specifier = ">=6.3.0" },
 ]
 
