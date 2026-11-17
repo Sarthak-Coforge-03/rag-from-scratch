@@ -6,6 +6,7 @@ Lab: build a RAG Q&A assistant over company policy docs, from scratch. Full brie
 - Python 3.12, `uv` (src layout: `src/rag_from_scratch/`, CLI `rag-from-scratch` → `rag_from_scratch:main`).
 - Embeddings: `sentence-transformers` (local). Vector store: `chromadb` (local). Reranker: sentence-transformers `CrossEncoder`.
 - Generation: an LLM via API. Tests: `pytest`. CI must run the eval harness.
+- Hooks (`.claude/`): every Stop runs `ruff format` + `pytest` (failures block); `.env` files are off-limits.
 
 ## Build order (incremental — verify each step before the next)
 1. Generate 3-4 policy docs (500-800 words) with ONE planted data-quality issue (outdated conflicting duplicate, or doc missing a referenced section).
