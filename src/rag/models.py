@@ -46,9 +46,6 @@ class ChunkMetadata(BaseModel):
     version: str
     effective_date: date
     source_path: Path
-    heading: (
-        str  # nearest markdown heading above the chunk, "" if the document has none
-    )
     chunk_index: int  # 0, 1, 2… position of the chunk within its document
     start_index: int  # character offsets of the chunk inside Document.text
     end_index: int

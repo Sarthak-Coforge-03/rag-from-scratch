@@ -38,7 +38,6 @@ def test_chunk_metadata_dumps_to_chroma_safe_values():
         version="4.0",
         effective_date=date(2026, 1, 1),
         source_path=Path("data/policies/pto_policy.md"),
-        heading="",
         chunk_index=0,
         start_index=0,
         end_index=120,
