@@ -226,3 +226,6 @@ __marimo__/
 CLAUDE.local.md
 .vscode
 plan.local.md
+
+# Local SQLite document store
+data/*.db

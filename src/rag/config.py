@@ -11,6 +11,7 @@ load_dotenv()  # reads .env once, at first import; real env vars take precedence
 class Settings:
     policy_docs_dir: Path = Path(os.getenv("POLICY_DOCS_DIR", "data/policies"))
     max_doc_bytes: int = int(os.getenv("MAX_DOC_BYTES", "5000000"))  # 5 MB
+    database_url: str = os.getenv("DATABASE_URL", "sqlite:///data/docs.db")
     chroma_dir: Path = Path(os.getenv("CHROMA_DIR", ".chroma"))
     collection: str = os.getenv("CHROMA_COLLECTION", "policies")
     embed_model: str = os.getenv("EMBED_MODEL", "all-MiniLM-L6-v2")
