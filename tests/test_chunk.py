@@ -2,7 +2,9 @@
 
 from pathlib import Path
 
-from rag.chunk import chunk_document, create_chunker, find_heading
+import pytest
+
+from rag.chunk import create_chunker, find_heading
 from rag.documents import load_document
 
 PTO_POLICY_PATH = Path(__file__).parent.parent / "data" / "policies" / "pto_policy.md"
@@ -28,9 +30,9 @@ def test_find_heading_prefers_heading_inside_chunk_then_nearest_above():
 def test_chunk_document_builds_ids_offsets_and_headings():
     """Chunks get versioned ids, offsets that point back into the text, and their section heading."""
     document = load_document(PTO_POLICY_PATH)
-    chunker = create_chunker(chunk_size=800, chunk_overlap=150)
+    chunker = create_chunker(strategy="token", chunk_size=800, chunk_overlap=150)
 
-    chunks = chunk_document(document, chunker)
+    chunks = chunker.chunk_document(document)
 
     assert len(chunks) > 1
     for index, chunk in enumerate(chunks):
@@ -49,3 +51,9 @@ def test_chunk_document_builds_ids_offsets_and_headings():
         if "## PTO-5 Carryover" in chunk.text and "## PTO-4" not in chunk.text
     ]
     assert carryover_chunks[0].metadata.heading == "PTO-5 Carryover"
+
+
+def test_unknown_strategy_is_rejected():
+    """A typo in CHUNK_STRATEGY should fail at startup, not fall back to some default silently."""
+    with pytest.raises(ValueError):
+        create_chunker(strategy="no-such-strategy", chunk_size=800, chunk_overlap=150)
