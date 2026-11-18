@@ -1,9 +1,11 @@
+---
+title: Paid Time Off (PTO) Policy
+policy_id: "PTO-001"
+version: "4.0"
+effective_date: 2026-01-01
+owner: "People Operations"
+---
 # Paid Time Off (PTO) Policy
-
-- **Policy ID:** PTO-001
-- **Version:** 4.0
-- **Effective date:** 2026-01-01
-- **Owner:** People Operations
 
 ## PTO-1 Purpose and Scope
 

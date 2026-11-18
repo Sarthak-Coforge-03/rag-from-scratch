@@ -1,6 +1,5 @@
 """Tests for the pydantic models' validation and serialisation rules."""
 
-from datetime import date
 from pathlib import Path
 
 import pytest
@@ -36,7 +35,7 @@ def test_chunk_metadata_dumps_to_chroma_safe_values():
         title="Paid Time Off (PTO) Policy",
         policy_id="PTO-001",
         version="4.0",
-        effective_date=date(2026, 1, 1),
+        effective_date="2026-01-01",
         source_path=Path("data/policies/pto_policy.md"),
         chunk_index=0,
         start_index=0,

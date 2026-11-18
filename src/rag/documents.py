@@ -1,15 +1,31 @@
-"""Read policy markdown files from disk into Document objects."""
+"""Read markdown files from disk into Document objects.
+
+Files can be free-form markdown. Metadata is optional and comes from a YAML
+front-matter block at the very top of the file:
+
+    ---
+    title: Paid Time Off (PTO) Policy
+    policy_id: PTO-001
+    version: "4.0"        # quote versions, or YAML reads 3.10 as the number 3.1
+    effective_date: 2026-01-01
+    ---
+
+Any key may be missing; unknown keys (e.g. owner) are ignored.
+"""
 
 import re
 from datetime import date
 from pathlib import Path
 
+import yaml
+
 from rag.models import Document
 
-# Matches header lines such as "- **Policy ID:** PTO-001" and captures the key and value.
-METADATA_LINE = re.compile(r"^- \*\*(?P<key>[^:*]+):\*\* (?P<value>.+)$", re.MULTILINE)
+# A front-matter block: "---" on the first line, YAML, then a closing "---" line.
+FRONT_MATTER = re.compile(r"\A---[ \t]*\n(?P<yaml>.*?)\n---[ \t]*(\n|\Z)", re.DOTALL)
 
-REQUIRED_KEYS = ["Policy ID", "Version", "Effective date"]
+# The first top-level markdown heading, used as a fallback title.
+TOP_HEADING = re.compile(r"^# +(?P<title>.+?)\s*$", re.MULTILINE)
 
 
 def load_documents(folder: Path) -> list[Document]:
@@ -19,32 +35,68 @@ def load_documents(folder: Path) -> list[Document]:
 
 
 def load_document(path: Path) -> Document:
-    """Load one policy file, reading its title and header metadata.
+    """Load one markdown file, reading optional front matter and choosing a title.
 
-    Raises ValueError naming the file if the title or any required metadata is missing,
-    so bad source data fails loudly at load time instead of silently later.
+    Title order: front-matter `title`, else the first "# " heading, else the file name.
+    Raises ValueError naming the file if the front matter is not valid YAML mapping,
+    so broken metadata fails loudly at load time instead of silently later.
     """
-    text = path.read_text(encoding="utf-8")
-
-    first_line = text.splitlines()[0] if text else ""
-    if not first_line.startswith("# "):
-        raise ValueError(f"{path.name}: first line must be a '# Title' heading")
-    title = first_line.removeprefix("# ").strip()
-
-    metadata = {}
-    for match in METADATA_LINE.finditer(text):
-        metadata[match.group("key").strip()] = match.group("value").strip()
-
-    missing_keys = [key for key in REQUIRED_KEYS if key not in metadata]
-    if missing_keys:
-        raise ValueError(f"{path.name}: missing metadata {missing_keys}")
+    raw_text = path.read_text(encoding="utf-8")
+    front_matter = read_front_matter(raw_text, path)
+    body = remove_front_matter(raw_text)
 
     return Document(
         doc_id=path.stem,
-        title=title,
-        policy_id=metadata["Policy ID"],
-        version=metadata["Version"],
-        effective_date=date.fromisoformat(metadata["Effective date"]),
+        title=choose_title(front_matter, body, path),
+        policy_id=str(front_matter.get("policy_id", "")),
+        version=str(front_matter.get("version", "")),
+        effective_date=read_date(front_matter.get("effective_date"), path),
         source_path=path,
-        text=text,
+        text=body,
     )
+
+
+def read_front_matter(raw_text: str, path: Path) -> dict:
+    """Return the front-matter keys as a dict, or {} if the file has no front matter."""
+    match = FRONT_MATTER.match(raw_text)
+    if match is None:
+        return {}
+    try:
+        parsed = yaml.safe_load(match.group("yaml"))
+    except yaml.YAMLError as error:
+        raise ValueError(f"{path.name}: front matter is not valid YAML ({error})")
+    if parsed is None:
+        return {}
+    if not isinstance(parsed, dict):
+        raise ValueError(f"{path.name}: front matter must be 'key: value' lines")
+    return parsed
+
+
+def remove_front_matter(raw_text: str) -> str:
+    """Return the file text with the front-matter block (if any) cut off the top."""
+    match = FRONT_MATTER.match(raw_text)
+    if match is None:
+        return raw_text
+    return raw_text[match.end() :]
+
+
+def choose_title(front_matter: dict, body: str, path: Path) -> str:
+    """Pick the title: front matter, then the first '# ' heading, then the file name."""
+    if front_matter.get("title"):
+        return str(front_matter["title"])
+    heading = TOP_HEADING.search(body)
+    if heading is not None:
+        return heading.group("title")
+    return path.stem
+
+
+def read_date(value, path: Path) -> date | None:
+    """Turn a front-matter date into a date; YAML may already have parsed it, or it may be text."""
+    if value is None or value == "":
+        return None
+    if isinstance(value, date):
+        return value
+    try:
+        return date.fromisoformat(str(value))
+    except ValueError:
+        raise ValueError(f"{path.name}: effective_date {value!r} is not YYYY-MM-DD")

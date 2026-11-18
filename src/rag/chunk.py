@@ -57,6 +57,12 @@ class BaseChunker(ABC):
         """
         pieces = self.split_text(document.text)
 
+        # Chroma metadata can't hold None, so a missing date is stored as "".
+        if document.effective_date is None:
+            effective_date = ""
+        else:
+            effective_date = document.effective_date.isoformat()
+
         chunks = []
         for index, piece in enumerate(pieces):
             metadata = ChunkMetadata(
@@ -64,7 +70,7 @@ class BaseChunker(ABC):
                 title=document.title,
                 policy_id=document.policy_id,
                 version=document.version,
-                effective_date=document.effective_date,
+                effective_date=effective_date,
                 source_path=document.source_path,
                 chunk_index=index,
                 start_index=piece.start_index,
