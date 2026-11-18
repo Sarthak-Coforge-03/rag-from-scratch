@@ -3,9 +3,10 @@
 from datetime import date
 from pathlib import Path
 
-from rag.documents import load_document, load_documents
+from rag.documents import iter_documents, load_document
 
 POLICY_FOLDER = Path(__file__).parent.parent / "data" / "policies"
+FIVE_MEGABYTES = 5_000_000
 
 
 def find_document(documents, doc_id):
@@ -57,7 +58,7 @@ def test_missing_front_matter_falls_back_to_heading_then_file_name(tmp_path):
 
 def test_stale_expense_duplicate_is_distinguishable_by_version():
     """Both expense files share a policy ID; only version and date reveal the planted stale copy."""
-    documents = load_documents(POLICY_FOLDER)
+    documents = list(iter_documents(POLICY_FOLDER, max_bytes=FIVE_MEGABYTES))
 
     current_policy = find_document(documents, "expense_reimbursement_policy")
     stale_policy = find_document(documents, "expense_reimbursement_policy_2023")
@@ -66,3 +67,16 @@ def test_stale_expense_duplicate_is_distinguishable_by_version():
     assert current_policy.version == "3.0"
     assert stale_policy.version == "2.1"
     assert stale_policy.effective_date < current_policy.effective_date
+
+
+def test_oversized_file_is_skipped_and_others_still_load(tmp_path):
+    """A file over max_bytes is skipped (not read into memory) and streaming continues."""
+    small_file = tmp_path / "small.md"
+    small_file.write_text("# Small\nFits under the limit.\n")
+    huge_file = tmp_path / "huge.md"
+    huge_file.write_text("# Huge\n" + "x" * 2_000)
+
+    documents = list(iter_documents(tmp_path, max_bytes=1_000))
+
+    loaded_ids = [document.doc_id for document in documents]
+    assert loaded_ids == ["small"]

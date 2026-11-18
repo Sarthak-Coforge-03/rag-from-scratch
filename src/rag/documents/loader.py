@@ -11,15 +11,23 @@ front-matter block at the very top of the file:
     ---
 
 Any key may be missing; unknown keys (e.g. owner) are ignored.
+
+Documents are streamed: iter_documents() yields one Document at a time, so the
+whole corpus is never in memory together. Files larger than max_bytes are skipped
+before being read, so one oversized file can't exhaust memory either.
 """
 
+import logging
 import re
+from collections.abc import Iterator
 from datetime import date
 from pathlib import Path
 
 import yaml
 
 from rag.models import Document
+
+logger = logging.getLogger(__name__)
 
 # A front-matter block: "---" on the first line, YAML, then a closing "---" line.
 FRONT_MATTER = re.compile(r"\A---[ \t]*\n(?P<yaml>.*?)\n---[ \t]*(\n|\Z)", re.DOTALL)
@@ -28,10 +36,24 @@ FRONT_MATTER = re.compile(r"\A---[ \t]*\n(?P<yaml>.*?)\n---[ \t]*(\n|\Z)", re.DO
 TOP_HEADING = re.compile(r"^# +(?P<title>.+?)\s*$", re.MULTILINE)
 
 
-def load_documents(folder: Path) -> list[Document]:
-    """Load every .md file in the folder, sorted by file name so the order is stable."""
+def iter_documents(folder: Path, max_bytes: int) -> Iterator[Document]:
+    """Yield the folder's .md files one Document at a time, sorted by file name.
+
+    Files larger than max_bytes are skipped with a warning instead of being read,
+    and the remaining files are still yielded.
+    """
     markdown_files = sorted(folder.glob("*.md"))
-    return [load_document(path) for path in markdown_files]
+    for path in markdown_files:
+        size_in_bytes = path.stat().st_size
+        if size_in_bytes > max_bytes:
+            logger.warning(
+                "Skipping %s: %d bytes is over the %d-byte limit",
+                path.name,
+                size_in_bytes,
+                max_bytes,
+            )
+            continue
+        yield load_document(path)
 
 
 def load_document(path: Path) -> Document:
