@@ -22,13 +22,10 @@ def main() -> None:
     print(f"Loading embedding model: {settings.embed_model}")
     model = SentenceTransformer(settings.embed_model)
 
-    # Step 1: embed one short piece of text.
     meal_embedding = model.encode(MEAL_TEXT).tolist()
     print(f"\n[1] Embedded text A -> vector of length {len(meal_embedding)}")
     print(f"    text A: {MEAL_TEXT!r}")
 
-    # Step 2: store it in an in-memory chromadb collection, using OUR embedding
-    # (embedding_function=None stops Chroma from using its own built-in model).
     client = chromadb.EphemeralClient()
     collection = client.create_collection(
         name="minimal_loop",
@@ -40,7 +37,6 @@ def main() -> None:
         f"\n[2] Stored text A in collection 'minimal_loop' -> count = {collection.count()}"
     )
 
-    # Step 3: add a second, unrelated piece of text.
     password_embedding = model.encode(PASSWORD_TEXT).tolist()
     collection.add(
         ids=["text_b"], documents=[PASSWORD_TEXT], embeddings=[password_embedding]
@@ -48,7 +44,6 @@ def main() -> None:
     print(f"\n[3] Stored text B -> count = {collection.count()}")
     print(f"    text B: {PASSWORD_TEXT!r}")
 
-    # Step 4: embed a question and ask Chroma for the closest texts.
     question_embedding = model.encode(QUESTION).tolist()
     results = collection.query(query_embeddings=[question_embedding], n_results=2)
 
