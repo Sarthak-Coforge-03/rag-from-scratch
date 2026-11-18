@@ -1,9 +1,11 @@
+---
+title: Remote Work Policy
+policy_id: "RW-001"
+version: "2.0"
+effective_date: 2025-07-01
+owner: "People Operations"
+---
 # Remote Work Policy
-
-- **Policy ID:** RW-001
-- **Version:** 2.0
-- **Effective date:** 2025-07-01
-- **Owner:** People Operations
 
 ## RW-1 Purpose and Scope
 

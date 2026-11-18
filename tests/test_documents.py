@@ -1,9 +1,9 @@
-"""Tests for loading policy markdown files into Document objects."""
+"""Tests for loading markdown files into Document objects."""
 
 from datetime import date
 from pathlib import Path
 
-from rag.documents import load_documents
+from rag.documents import load_document, load_documents
 
 POLICY_FOLDER = Path(__file__).parent.parent / "data" / "policies"
 
@@ -14,17 +14,45 @@ def find_document(documents, doc_id):
     return matching[0]
 
 
-def test_loads_every_policy_with_its_metadata():
-    """All five files load, and the PTO policy's header metadata and body text are parsed."""
-    documents = load_documents(POLICY_FOLDER)
-    assert len(documents) == 5
+def test_front_matter_is_parsed_and_removed_from_text(tmp_path):
+    """YAML front matter fills the metadata fields and is not part of the chunkable text."""
+    path = tmp_path / "travel_policy.md"
+    path.write_text(
+        "---\n"
+        "title: Travel Policy\n"
+        "policy_id: TRV-001\n"
+        'version: "1.2"\n'
+        "effective_date: 2026-02-01\n"
+        "---\n"
+        "# Travel\n"
+        "Book trains for trips under three hours.\n"
+    )
 
-    pto_policy = find_document(documents, "pto_policy")
-    assert pto_policy.title == "Paid Time Off (PTO) Policy"
-    assert pto_policy.policy_id == "PTO-001"
-    assert pto_policy.version == "4.0"
-    assert pto_policy.effective_date == date(2026, 1, 1)
-    assert "## PTO-5 Carryover" in pto_policy.text
+    document = load_document(path)
+
+    assert document.title == "Travel Policy"
+    assert document.policy_id == "TRV-001"
+    assert document.version == "1.2"
+    assert document.effective_date == date(2026, 2, 1)
+    assert document.text.startswith("# Travel")
+    assert "policy_id" not in document.text
+
+
+def test_missing_front_matter_falls_back_to_heading_then_file_name(tmp_path):
+    """Without front matter: title comes from the first '# ' heading, else the file name."""
+    with_heading = tmp_path / "faq.md"
+    with_heading.write_text("Intro line\n# Employee FAQ\nQ: Who do I ask?\n")
+    without_heading = tmp_path / "loose_notes.md"
+    without_heading.write_text("Just some notes with no heading at all.\n")
+
+    document_with_heading = load_document(with_heading)
+    document_without_heading = load_document(without_heading)
+
+    assert document_with_heading.title == "Employee FAQ"
+    assert document_with_heading.policy_id == ""
+    assert document_with_heading.version == ""
+    assert document_with_heading.effective_date is None
+    assert document_without_heading.title == "loose_notes"
 
 
 def test_stale_expense_duplicate_is_distinguishable_by_version():

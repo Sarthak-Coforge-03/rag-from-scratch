@@ -1,9 +1,11 @@
+---
+title: Expense Reimbursement Policy
+policy_id: "EXP-001"
+version: "2.1"
+effective_date: 2023-03-01
+owner: "Finance Operations"
+---
 # Expense Reimbursement Policy
-
-- **Policy ID:** EXP-001
-- **Version:** 2.1
-- **Effective date:** 2023-03-01
-- **Owner:** Finance Operations
 
 ## EXP-1 Purpose and Scope
 

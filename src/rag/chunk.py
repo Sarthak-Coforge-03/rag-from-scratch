@@ -2,8 +2,10 @@
 
 Structure
 ---------
-- BaseChunker holds everything shared: building Chunk/ChunkMetadata, chunk ids and
-  headings. Subclasses only decide how raw text is split (split_text).
+- BaseChunker holds everything shared: building Chunk/ChunkMetadata and chunk ids.
+  Subclasses only decide how raw text is split (split_text).
+- No assumptions about markdown structure (headings, section codes): documents can
+  be free-form, so chunks only carry document-level metadata plus their offsets.
 - TokenWindowChunker is the one strategy today: fixed-size character windows with
   overlap, using chonkie's TokenChunker.
 - create_chunker() picks the strategy by name (CHUNK_STRATEGY in config.py). To add a
@@ -24,40 +26,18 @@ Both values come from config.py (CHUNK_SIZE / CHUNK_OVERLAP) and are passed in a
 arguments, so tests and experiments can try other sizes.
 """
 
-import re
 from abc import ABC, abstractmethod
 
 import chonkie
 
 from rag.models import Chunk, ChunkMetadata, Document
 
-# Any markdown heading line ("# Title" ... "###### Title"); captures the heading text.
-HEADING_LINE = re.compile(r"^#{1,6}\s+(?P<heading>.+?)\s*$", re.MULTILINE)
-
-
-def find_heading(text: str, start: int, end: int) -> str:
-    """Return the heading that best describes text[start:end].
-
-    If a heading line begins inside the chunk, the first such heading is used,
-    because the chunk is mostly about that section. Otherwise the nearest heading
-    above the chunk is used. Returns "" when the text has no heading before `end`.
-    """
-    heading_above_chunk = ""
-    for match in HEADING_LINE.finditer(text):
-        heading_start = match.start()
-        if heading_start >= end:
-            break
-        if heading_start >= start:
-            return match.group("heading")
-        heading_above_chunk = match.group("heading")
-    return heading_above_chunk
-
 
 class BaseChunker(ABC):
     """Turns Documents into Chunks; subclasses only decide how the text is split.
 
-    Everything that does not depend on the splitting strategy (metadata, chunk ids,
-    headings) lives here, so every strategy produces Chunks the same way.
+    Everything that does not depend on the splitting strategy (metadata and chunk
+    ids) lives here, so every strategy produces Chunks the same way.
     """
 
     def __init__(self, chunk_size: int, chunk_overlap: int):
@@ -77,6 +57,12 @@ class BaseChunker(ABC):
         """
         pieces = self.split_text(document.text)
 
+        # Chroma metadata can't hold None, so a missing date is stored as "".
+        if document.effective_date is None:
+            effective_date = ""
+        else:
+            effective_date = document.effective_date.isoformat()
+
         chunks = []
         for index, piece in enumerate(pieces):
             metadata = ChunkMetadata(
@@ -84,9 +70,8 @@ class BaseChunker(ABC):
                 title=document.title,
                 policy_id=document.policy_id,
                 version=document.version,
-                effective_date=document.effective_date,
+                effective_date=effective_date,
                 source_path=document.source_path,
-                heading=find_heading(document.text, piece.start_index, piece.end_index),
                 chunk_index=index,
                 start_index=piece.start_index,
                 end_index=piece.end_index,

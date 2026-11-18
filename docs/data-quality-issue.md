@@ -9,7 +9,7 @@ The corpus in `data/policies/` contains **two versions of the same policy**:
 
 | File | Policy ID | Version | Effective | Status |
 |---|---|---|---|---|
-| `expense_reimbursement_policy.md` | EXP-001 | 3.0 | 2026-01-01 | **Current** (its header says "Supersedes v2.1") |
+| `expense_reimbursement_policy.md` | EXP-001 | 3.0 | 2026-01-01 | **Current** (its front matter says `supersedes: EXP-001 v2.1 (2023)`) |
 | `expense_reimbursement_policy_2023.md` | EXP-001 | 2.1 | 2023-03-01 | **Stale**: never removed, no "superseded" marker |
 
 Both files have the same title, the same Policy ID, the same section codes (`EXP-1` … `EXP-9`) and mostly identical wording. Only the facts below differ.
@@ -44,4 +44,4 @@ Retrieval should work correctly. For these questions, the top-k chunks will incl
 2. gives a hedged answer ("between $50 and $75"), or
 3. switches between the two values from one run to the next.
 
-The point of Part 6 is that the retrieved chunks *are* relevant and the generator faithfully reports what it was given. The root cause is that the source corpus contains a superseded document. The evidence is the `Version` / `Effective date` metadata and the "Supersedes v2.1" line in the current file.
+The point of Part 6 is that the retrieved chunks *are* relevant and the generator faithfully reports what it was given. The root cause is that the source corpus contains a superseded document. The evidence is the `version` / `effective_date` metadata on every retrieved chunk and the `supersedes` field in the current file's front matter.

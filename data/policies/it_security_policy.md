@@ -1,9 +1,11 @@
+---
+title: IT Security Policy
+policy_id: "SEC-001"
+version: "5.2"
+effective_date: 2025-10-01
+owner: "Information Security"
+---
 # IT Security Policy
-
-- **Policy ID:** SEC-001
-- **Version:** 5.2
-- **Effective date:** 2025-10-01
-- **Owner:** Information Security
 
 ## SEC-1 Purpose and Scope
 
