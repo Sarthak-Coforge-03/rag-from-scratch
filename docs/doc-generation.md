@@ -28,3 +28,22 @@ The lab's Part 1 asks for LLM-generated policy documents. All five files in `dat
 | it_security_policy.md | 648 |
 | pto_policy.md | 681 |
 | remote_work_policy.md | 663 |
+
+## Expansion: production-style corpus (2026-11-18)
+
+To make retrieval behave more like a real company wiki, eight more documents were added by **Claude (Opus 5.5)**, and the original five were converted from bullet metadata to optional YAML front matter (bodies unchanged).
+
+> Write eight more markdown documents for Halvorsen Analytics in deliberately *varied* shapes, as found in a real policy wiki: a benefits overview with a table, an employee FAQ in Q&A form, an onboarding checklist, a numbered travel-booking how-to, a mostly-prose code of conduct, a memo-style holiday announcement with no headings, a glossary, and a README index. Some should have YAML front matter (title, policy_id, version, effective_date, owner), some none. Every fact that overlaps an existing policy must match the **current** versions (e.g. $75 daily meal limit, receipts over $50, 30-day claim deadline) so the stale 2023 expense policy remains the only conflicting source.
+
+| File | Shape | Front matter | Words |
+|---|---|---|---|
+| README.md | index of links | none | 203 |
+| benefits_overview.md | table + short sections | full | 566 |
+| code_of_conduct.md | prose, one heading | full | 500 |
+| employee_faq.md | bold Q / A pairs | none | 490 |
+| glossary.md | bold term — definition | none | 371 |
+| holiday_schedule_2026_announcement.md | email memo, no headings | none | 339 |
+| onboarding_guide.md | checklist (`- [ ]`) | title + owner only | 458 |
+| travel_booking_howto.md | numbered steps, `###` headings | none | 451 |
+
+With these, the corpus is 13 documents and about 6,800 words, which chunk into 66 chunks at 800/150 characters.

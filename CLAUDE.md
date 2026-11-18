@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Lab: build a RAG Q&A assistant over company policy docs, from scratch. Full brief + 100-pt rubric: `plan.local.md` (gitignored) (source of truth — check it before claiming a part is done). Personal dev preferences: `CLAUDE.local.md` (gitignored).
-Corpus: `data/policies/` (5 docs; `expense_reimbursement_policy_2023.md` is the PLANTED stale duplicate — see `docs/data-quality-issue.md`). Never "fix" it.
+Corpus: `data/policies/` (13 varied markdown docs, optional YAML front matter; `expense_reimbursement_policy_2023.md` is the PLANTED stale duplicate — see `docs/data-quality-issue.md`). Never "fix" it.
 
 ## Stack
 - Python 3.12, `uv` (src layout: `src/rag_from_scratch/`, CLI `rag-from-scratch` → `rag_from_scratch:main`).
