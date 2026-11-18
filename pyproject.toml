@@ -8,6 +8,7 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "chonkie>=1.7.0",
     "chromadb>=1.5.9",
     "pydantic>=2.14.3",
     "python-dotenv>=1.2.4",
