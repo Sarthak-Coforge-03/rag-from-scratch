@@ -142,6 +142,8 @@ def create_chunker(strategy: str, chunk_size: int, chunk_overlap: int) -> BaseCh
     """
     if strategy not in CHUNKER_CLASSES:
         valid_names = ", ".join(CHUNKER_CLASSES)
-        raise ValueError(f"Unknown chunk strategy {strategy!r}; choose one of: {valid_names}")
+        raise ValueError(
+            f"Unknown chunk strategy {strategy!r}; choose one of: {valid_names}"
+        )
     chunker_class = CHUNKER_CLASSES[strategy]
     return chunker_class(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
