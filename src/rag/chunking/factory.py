@@ -1,11 +1,13 @@
 """Pick a chunking strategy by name (CHUNK_STRATEGY in config.py)."""
 
 from rag.chunking.base import BaseChunker
+from rag.chunking.recursive_split import RecursiveSplitChunker
 from rag.chunking.token_window import TokenWindowChunker
 
 # Strategy name (CHUNK_STRATEGY) -> chunker class. Add new strategies here.
 CHUNKER_CLASSES = {
     "token": TokenWindowChunker,
+    "recursive": RecursiveSplitChunker,
 }
 
 
