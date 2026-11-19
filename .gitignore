@@ -229,3 +229,6 @@ plan.local.md
 
 # Local SQLite document store
 data/*.db
+
+# Local Chroma vector store
+.chroma/

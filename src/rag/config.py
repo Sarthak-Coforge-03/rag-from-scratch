@@ -12,8 +12,9 @@ class Settings:
     policy_docs_dir: Path = Path(os.getenv("POLICY_DOCS_DIR", "data/policies"))
     max_doc_bytes: int = int(os.getenv("MAX_DOC_BYTES", "5000000"))  # 5 MB
     database_url: str = os.getenv("DATABASE_URL", "sqlite:///data/docs.db")
-    chroma_dir: Path = Path(os.getenv("CHROMA_DIR", ".chroma"))
-    collection: str = os.getenv("CHROMA_COLLECTION", "policies")
+    vector_store: str = os.getenv("VECTOR_STORE", "chroma")
+    vector_store_location: str = os.getenv("VECTOR_STORE_LOCATION", ".chroma")
+    vector_collection: str = os.getenv("VECTOR_COLLECTION", "policy_chunks")
     embed_provider: str = os.getenv("EMBED_PROVIDER", "sentence-transformers")
     embed_model: str = os.getenv("EMBED_MODEL", "all-MiniLM-L6-v2")
     embed_batch_size: int = int(os.getenv("EMBED_BATCH_SIZE", "64"))
