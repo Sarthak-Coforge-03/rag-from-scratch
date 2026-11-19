@@ -59,11 +59,12 @@ class ChunkMetadata(BaseModel):
 class Chunk(BaseModel):
     """A piece of a document to embed and store, together with its metadata.
 
-    chunk_id combines doc_id, version and chunk_index so it stays unique across
-    versions of the same document and is identical on every re-ingest.
+    chunk_id combines doc_id, the start of the document's content hash and
+    chunk_index: identical on every re-ingest of the same content, and new for
+    every edit, so an edited document never reuses an old chunk's id.
     """
 
-    chunk_id: str  # e.g. "pto_policy::v4.0::0"
+    chunk_id: str  # e.g. "pto_policy::3f9a1c0b7d2e::0"
     text: str
     metadata: ChunkMetadata
 
