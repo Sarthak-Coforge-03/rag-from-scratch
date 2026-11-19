@@ -17,6 +17,7 @@ whole corpus is never in memory together. Files larger than max_bytes are skippe
 before being read, so one oversized file can't exhaust memory either.
 """
 
+import hashlib
 import logging
 import re
 from collections.abc import Iterator
@@ -75,7 +76,17 @@ def load_document(path: Path) -> Document:
         effective_date=read_date(front_matter.get("effective_date"), path),
         source_path=path,
         text=body,
+        content_hash=hash_text(raw_text),
     )
+
+
+def hash_text(text: str) -> str:
+    """Return the SHA-256 fingerprint of the text as 64 hex characters.
+
+    The same text always gives the same hash and any edit, even one character,
+    gives a different one, so comparing hashes tells whether a file changed.
+    """
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def read_front_matter(raw_text: str, path: Path) -> dict:

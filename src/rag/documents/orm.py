@@ -29,6 +29,8 @@ class DocumentRow(Base):
     effective_date: Mapped[date | None]
     source_path: Mapped[str]
     text: Mapped[str] = mapped_column(Text)
+    # SHA-256 of the raw file; an unchanged hash means ingestion can skip the file.
+    content_hash: Mapped[str]
 
     # Deleting a document deletes its chunks too ("delete-orphan").
     chunks: Mapped[list["ChunkRow"]] = relationship(

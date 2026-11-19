@@ -80,3 +80,20 @@ def test_oversized_file_is_skipped_and_others_still_load(tmp_path):
 
     loaded_ids = [document.doc_id for document in documents]
     assert loaded_ids == ["small"]
+
+
+def test_content_hash_changes_only_when_the_file_changes(tmp_path):
+    """Identical file text gives the same hash; changing one character gives a different one."""
+    original = tmp_path / "original.md"
+    original.write_text("# Policy\nMeals are capped at $75 per day.\n")
+    identical_copy = tmp_path / "identical_copy.md"
+    identical_copy.write_text("# Policy\nMeals are capped at $75 per day.\n")
+    edited = tmp_path / "edited.md"
+    edited.write_text("# Policy\nMeals are capped at $76 per day.\n")
+
+    original_hash = load_document(original).content_hash
+    copy_hash = load_document(identical_copy).content_hash
+    edited_hash = load_document(edited).content_hash
+
+    assert original_hash == copy_hash
+    assert original_hash != edited_hash

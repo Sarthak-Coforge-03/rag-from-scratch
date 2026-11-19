@@ -31,6 +31,9 @@ class Document(BaseModel):
     effective_date: date | None = None  # None when the file doesn't say
     source_path: Path
     text: str  # the file body without front matter; chunking decides how to split it
+    # SHA-256 of the whole raw file (front matter included). Ingestion compares it with
+    # the stored hash to skip files that haven't changed since the last run.
+    content_hash: str
 
 
 class ChunkMetadata(BaseModel):
