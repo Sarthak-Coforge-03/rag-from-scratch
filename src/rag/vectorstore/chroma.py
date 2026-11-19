@@ -14,14 +14,18 @@ class ChromaVectorStore(BaseVectorStore):
     No documents or metadata are stored in Chroma; they live in the document database.
     """
 
-    def __init__(self, persist_directory: Path, collection_name: str):
-        """Open (or create) the collection stored in persist_directory.
+    def __init__(self, location: str | Path, collection_name: str):
+        """Open (or create) the collection stored in the folder `location`.
+
+        `location` is the folder Chroma keeps its files in (e.g. ".chroma"); every
+        vector store takes (location, collection_name) so the factory can build any
+        of them the same way.
 
         embedding_function=None stops Chroma from embedding text with its own built-in
         model: every vector comes from our embedder. Cosine distance matches the
         normalized vectors our embedder produces.
         """
-        self.client = chromadb.PersistentClient(path=str(persist_directory))
+        self.client = chromadb.PersistentClient(path=str(location))
         self.collection = self.client.get_or_create_collection(
             name=collection_name,
             embedding_function=None,

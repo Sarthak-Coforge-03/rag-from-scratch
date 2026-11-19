@@ -5,7 +5,9 @@ ranking is obvious and the tests run fast. Cosine distance compares directions,
 so each test vector points along a different axis.
 """
 
-from rag.vectorstore import ChromaVectorStore
+import pytest
+
+from rag.vectorstore import ChromaVectorStore, create_vector_store
 
 POINTS_ALONG_X = [1.0, 0.0, 0.0]
 POINTS_ALONG_Y = [0.0, 1.0, 0.0]
@@ -15,7 +17,7 @@ MOSTLY_X_A_LITTLE_Y = [0.9, 0.1, 0.0]
 
 def make_store(tmp_path):
     """Return an empty store in this test's own temporary folder, isolated from other tests."""
-    return ChromaVectorStore(persist_directory=tmp_path, collection_name="test_chunks")
+    return ChromaVectorStore(location=tmp_path, collection_name="test_chunks")
 
 
 def test_query_returns_nearest_chunks_first(tmp_path):
@@ -55,3 +57,23 @@ def test_upsert_overwrites_and_delete_removes(tmp_path):
         match.chunk_id for match in store.query(MOSTLY_X_A_LITTLE_Y, top_k=3)
     ]
     assert "z_chunk" not in remaining_ids
+
+
+def test_factory_builds_a_working_chroma_store(tmp_path):
+    """create_vector_store("chroma", ...) returns a Chroma store that can store and count vectors."""
+    store = create_vector_store(
+        store="chroma", location=str(tmp_path), collection_name="test_chunks"
+    )
+
+    store.upsert(chunk_ids=["x_chunk"], embeddings=[POINTS_ALONG_X])
+
+    assert isinstance(store, ChromaVectorStore)
+    assert store.count() == 1
+
+
+def test_unknown_vector_store_is_rejected(tmp_path):
+    """A typo in VECTOR_STORE should fail at startup instead of silently using another store."""
+    with pytest.raises(ValueError):
+        create_vector_store(
+            store="no-such-store", location=str(tmp_path), collection_name="test_chunks"
+        )
