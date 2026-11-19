@@ -63,3 +63,14 @@ class Chunk(BaseModel):
     chunk_id: str  # e.g. "pto_policy::v4.0::0"
     text: str
     metadata: ChunkMetadata
+
+
+class VectorMatch(BaseModel):
+    """One hit from a vector search: which chunk matched and how far it was from the query.
+
+    distance is cosine distance: 0 means the same direction, larger means less similar.
+    The chunk's text and metadata are looked up separately in the document database.
+    """
+
+    chunk_id: str
+    distance: float
