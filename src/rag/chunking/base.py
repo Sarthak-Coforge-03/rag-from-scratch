@@ -32,10 +32,15 @@ class BaseChunker(ABC):
     def chunk_document(self, document: Document) -> list[Chunk]:
         """Split one Document into Chunks, copying its metadata onto every chunk.
 
-        chunk_id is "<doc_id>::v<version>::<index>" so it is unique across versions
-        of the same document and identical every time the document is re-chunked.
+        chunk_id is "<doc_id>::<first 12 hex chars of content_hash>::<index>":
+        - the same file content always gives the same ids, so re-chunking is repeatable;
+        - any edit (front matter included, so a version bump too) changes the hash, so
+          an edited document gets brand-new ids, and old and new chunks never share an
+          id (so writing new vectors can never overwrite the old ones).
+        12 hex characters (48 bits) are plenty to tell one file's versions apart.
         """
         pieces = self.split_text(document.text)
+        content_fingerprint = document.content_hash[:12]
 
         # Chroma metadata can't hold None, so a missing date is stored as "".
         if document.effective_date is None:
@@ -58,7 +63,7 @@ class BaseChunker(ABC):
                 token_count=piece.token_count,
             )
             chunk = Chunk(
-                chunk_id=f"{document.doc_id}::v{document.version}::{index}",
+                chunk_id=f"{document.doc_id}::{content_fingerprint}::{index}",
                 text=piece.text,
                 metadata=metadata,
             )

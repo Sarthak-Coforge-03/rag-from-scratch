@@ -70,6 +70,32 @@ class DocumentRepository:
             chunks_by_id[chunk_id] for chunk_id in chunk_ids if chunk_id in chunks_by_id
         ]
 
+    def get_content_hashes(self) -> dict[str, str]:
+        """Return {doc_id: content_hash} for every stored document.
+
+        Ingestion compares these with the files on disk: same hash means the file is
+        unchanged and can be skipped; a doc_id with no file anymore means it was
+        deleted or renamed and should be removed.
+        """
+        query = select(DocumentRow.doc_id, DocumentRow.content_hash)
+        with Session(self.engine) as session:
+            rows = session.execute(query).all()
+        return {row.doc_id: row.content_hash for row in rows}
+
+    def delete_document(self, doc_id: str) -> list[str]:
+        """Delete a document and its chunks; return the deleted chunk ids.
+
+        The ids are returned so the caller can delete the same chunks from the
+        vector store. An unknown doc_id deletes nothing and returns [].
+        """
+        with Session(self.engine) as session, session.begin():
+            existing_row = session.get(DocumentRow, doc_id)
+            if existing_row is None:
+                return []
+            removed_chunk_ids = [chunk.chunk_id for chunk in existing_row.chunks]
+            session.delete(existing_row)
+        return removed_chunk_ids
+
 
 def document_to_row(document: Document) -> DocumentRow:
     """Copy a pydantic Document into a new DocumentRow (without its chunks)."""
@@ -81,6 +107,7 @@ def document_to_row(document: Document) -> DocumentRow:
         effective_date=document.effective_date,
         source_path=str(document.source_path),
         text=document.text,
+        content_hash=document.content_hash,
     )
 
 

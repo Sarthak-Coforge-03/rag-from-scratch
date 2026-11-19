@@ -41,3 +41,27 @@ def test_saving_a_document_again_replaces_its_chunks():
 
     assert replaced_ids == first_save_ids
     assert len(repository.get_chunks(first_save_ids)) == len(chunks)
+
+
+def test_get_content_hashes_reports_each_saved_document():
+    """The stored hash per doc_id is what ingestion compares against to skip unchanged files."""
+    repository, document, chunks = make_repository_and_pto_chunks()
+    repository.save_document(document, chunks)
+
+    stored_hashes = repository.get_content_hashes()
+
+    assert stored_hashes == {"pto_policy": document.content_hash}
+
+
+def test_delete_document_removes_it_and_returns_its_chunk_ids():
+    """Deleting a document drops its chunks too and reports their ids for vector-store cleanup."""
+    repository, document, chunks = make_repository_and_pto_chunks()
+    repository.save_document(document, chunks)
+    saved_ids = [chunk.chunk_id for chunk in chunks]
+
+    removed_ids = repository.delete_document("pto_policy")
+
+    assert removed_ids == saved_ids
+    assert repository.get_chunks(saved_ids) == []
+    assert repository.get_content_hashes() == {}
+    assert repository.delete_document("no_such_document") == []

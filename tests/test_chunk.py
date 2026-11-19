@@ -20,7 +20,7 @@ def test_chunk_document_builds_ids_and_offsets(strategy):
 
     assert len(chunks) > 1
     for index, chunk in enumerate(chunks):
-        assert chunk.chunk_id == f"pto_policy::v4.0::{index}"
+        assert chunk.chunk_id == f"pto_policy::{document.content_hash[:12]}::{index}"
         assert chunk.metadata.chunk_index == index
         start = chunk.metadata.start_index
         end = chunk.metadata.end_index
