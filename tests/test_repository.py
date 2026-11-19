@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from rag.chunk import create_chunker
+from rag.chunking import create_chunker
 from rag.documents import DocumentRepository, load_document
 
 PTO_POLICY_PATH = Path(__file__).parent.parent / "data" / "policies" / "pto_policy.md"
