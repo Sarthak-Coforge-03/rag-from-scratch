@@ -2,12 +2,14 @@
 
 from rag.chunking.base import BaseChunker
 from rag.chunking.recursive_split import RecursiveSplitChunker
+from rag.chunking.structural import StructuralChunker
 from rag.chunking.token_window import TokenWindowChunker
 
 # Strategy name (CHUNK_STRATEGY) -> chunker class. Add new strategies here.
 CHUNKER_CLASSES = {
     "token": TokenWindowChunker,
     "recursive": RecursiveSplitChunker,
+    "structural": StructuralChunker,
 }
 
 
