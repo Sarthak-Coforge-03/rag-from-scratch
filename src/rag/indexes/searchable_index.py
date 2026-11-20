@@ -10,6 +10,8 @@ searching is done by the retrievers it makes.
     index.close()
 """
 
+from pathlib import Path
+
 from rag.config import settings
 from rag.documents import DocumentRepository
 from rag.embedding import BaseEmbedder, create_embedder
@@ -55,7 +57,9 @@ class SearchableIndex:
 
 
 def load_searchable_index(
-    index_name: str, model_name: str | None = None
+    index_name: str,
+    model_name: str | None = None,
+    index_root: Path = settings.index_root,
 ) -> SearchableIndex:
     """Load an index's SQL data, embedding model and vectors, checking they belong together.
 
@@ -65,9 +69,10 @@ def load_searchable_index(
     model as the chunks (EMBED_MODEL is not used here).
 
     Raises ValueError if the index isn't chunked, the model choice is unclear, or the
-    vectors are out of date with SQL.
+    vectors are out of date with SQL. index_root is where the index folder lives
+    (INDEX_ROOT by default; the CLI passes a temporary folder for a fresh index).
     """
-    manager = IndexManager(settings.index_root)
+    manager = IndexManager(index_root)
     layout = manager.open_chunked(index_name)
     embedder_config = pick_embedding_model(
         manager.read_embedder_configs(index_name), model_name
