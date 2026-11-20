@@ -1,0 +1,45 @@
+# Fixed eval questions (Part 5). For each case:
+#   expected_docs: retrieval is a hit if ANY of these doc_ids is retrieved
+#   key_facts:     the answer is correct if it contains ALL of these (case-insensitive)
+# Facts come from the current documents. meal-limit also touches the planted stale
+# duplicate (expense_reimbursement_policy_2023.md says $50, not $75).
+
+- id: pto-days
+  question: How many PTO days do I get with less than 3 years of service?
+  expected_docs: [pto_policy]
+  key_facts: ["20"]
+
+- id: pto-carryover
+  question: How many unused PTO days can I carry over into next year?
+  expected_docs: [pto_policy, glossary]
+  key_facts: ["5"]
+
+- id: password-length
+  question: What is the minimum password length?
+  expected_docs: [it_security_policy]
+  key_facts: ["14"]
+
+- id: sec-4
+  question: What is SEC-4 about?
+  expected_docs: [it_security_policy]
+  key_facts: ["device"]
+
+- id: home-office-stipend
+  question: How much is the home office stipend?
+  expected_docs: [remote_work_policy, benefits_overview]
+  key_facts: ["500"]
+
+- id: anchor-days
+  question: Which days are the hybrid anchor days?
+  expected_docs: [remote_work_policy]
+  key_facts: ["tuesday", "thursday"]
+
+- id: expense-approval
+  question: Who approves expenses over $2,500?
+  expected_docs: [expense_reimbursement_policy]
+  key_facts: ["director"]
+
+- id: meal-limit
+  question: What is the daily meal limit on overnight business trips?
+  expected_docs: [expense_reimbursement_policy, employee_faq, glossary]
+  key_facts: ["75"]

@@ -22,7 +22,7 @@ class Settings:
     chunk_strategy: str = os.getenv("CHUNK_STRATEGY", "token")
     chunk_size: int = int(os.getenv("CHUNK_SIZE", "800"))
     chunk_overlap: int = int(os.getenv("CHUNK_OVERLAP", "150"))
-    retriever_strategy: str = os.getenv("RETRIEVER", "vector")
+    retriever_strategy: str = os.getenv("RETRIEVER", "hybrid")
     top_k: int = int(os.getenv("TOP_K", "5"))
     rerank_provider: str = os.getenv("RERANK_PROVIDER", "cross-encoder")
     rerank_model: str = os.getenv(

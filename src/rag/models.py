@@ -122,6 +122,19 @@ class Answer(BaseModel):
     retrieved: list[RetrievedChunk]  # all retrieved chunks; retrieved[0] was [1]
 
 
+class EvalCase(BaseModel):
+    """One fixed eval question with what a good retrieval and answer must contain.
+
+    Stored in evals/eval_set.yaml. Retrieval is a hit if any expected doc is among
+    the retrieved chunks; the answer is correct if it contains every key fact.
+    """
+
+    id: str  # short slug used as the pytest id, e.g. "meal-limit"
+    question: str
+    expected_docs: list[str]  # doc_ids; several when the fact appears in more than one
+    key_facts: list[str]  # case-insensitive substrings the answer must contain
+
+
 class EmbedderConfig(BaseModel):
     """The model a vector folder was created with, saved so --sync rebuilds the same embedder.
 
