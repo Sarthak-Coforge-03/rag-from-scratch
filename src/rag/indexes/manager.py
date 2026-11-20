@@ -71,8 +71,7 @@ class IndexManager:
         layout = self.layout(name)
         if not layout.chunker_config_file.exists():
             raise ValueError(
-                f"Index {name!r} not found (no {layout.chunker_config_file}); "
-                "run without --index to create one"
+                f"Index {name!r} not found (no {layout.chunker_config_file})"
             )
         return ChunkerConfig.model_validate_json(layout.chunker_config_file.read_text())
 
