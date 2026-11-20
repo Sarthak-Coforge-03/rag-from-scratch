@@ -22,6 +22,7 @@ class Settings:
     chunk_strategy: str = os.getenv("CHUNK_STRATEGY", "token")
     chunk_size: int = int(os.getenv("CHUNK_SIZE", "800"))
     chunk_overlap: int = int(os.getenv("CHUNK_OVERLAP", "150"))
+    retriever_strategy: str = os.getenv("RETRIEVER", "vector")
     top_k: int = int(os.getenv("TOP_K", "5"))
 
 

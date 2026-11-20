@@ -92,6 +92,17 @@ class ChunkerConfig(BaseModel):
     chunk_overlap: int
 
 
+class RetrievedChunk(BaseModel):
+    """One search result: the full chunk (text + metadata for citing it) and its score.
+
+    Higher score = more relevant, for every retriever. Scores from different retrievers
+    are on different scales, so compare them only within one result list.
+    """
+
+    chunk: Chunk
+    score: float
+
+
 class EmbedderConfig(BaseModel):
     """The model a vector folder was created with, saved so --sync rebuilds the same embedder.
 

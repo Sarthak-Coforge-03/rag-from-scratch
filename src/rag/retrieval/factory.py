@@ -1,0 +1,43 @@
+"""Pick a retriever by name (RETRIEVER in config.py)."""
+
+from rag.documents import DocumentRepository
+from rag.embedding import BaseEmbedder
+from rag.retrieval.base import BaseRetriever
+from rag.retrieval.hybrid import HybridRetriever
+from rag.retrieval.keyword import KeywordRetriever
+from rag.retrieval.vector import VectorRetriever
+from rag.vectorstore import BaseVectorStore
+
+# Strategy names accepted by create_retriever (RETRIEVER). Add new strategies here
+# and build them in create_retriever below.
+RETRIEVER_STRATEGIES = ("vector", "keyword", "hybrid")
+
+
+def create_retriever(
+    strategy: str,
+    repository: DocumentRepository,
+    embedder: BaseEmbedder,
+    vector_store: BaseVectorStore,
+) -> BaseRetriever:
+    """Build the retriever for a strategy name, e.g. settings.retriever_strategy.
+
+    Every strategy is given all the search parts and uses the ones it needs, so
+    callers build retrievers the same way whichever strategy is chosen.
+
+    Raises ValueError listing the valid names if the strategy is unknown, so a typo
+    in RETRIEVER fails immediately instead of silently searching differently.
+    """
+    if strategy == "vector":
+        return VectorRetriever(
+            embedder=embedder, vector_store=vector_store, repository=repository
+        )
+    if strategy == "keyword":
+        return KeywordRetriever(repository=repository)
+    if strategy == "hybrid":
+        vector_retriever = VectorRetriever(
+            embedder=embedder, vector_store=vector_store, repository=repository
+        )
+        keyword_retriever = KeywordRetriever(repository=repository)
+        return HybridRetriever(retrievers=[vector_retriever, keyword_retriever])
+    valid_names = ", ".join(RETRIEVER_STRATEGIES)
+    raise ValueError(f"Unknown retriever {strategy!r}; choose one of: {valid_names}")
