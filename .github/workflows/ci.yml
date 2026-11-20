@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      # Needed by the answer-accuracy eval cases; they skip if these secrets are
+      # missing (e.g. pull requests from forks). Every other setting uses the
+      # defaults in src/rag/config.py, since CI has no .env file.
+      LLM_ENDPOINT: ${{ secrets.LLM_ENDPOINT }}
+      ANTHROPIC_FOUNDRY_API_KEY: ${{ secrets.ANTHROPIC_FOUNDRY_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true # reuse downloaded packages between runs
+
+      # Installs Python 3.12 (.python-version) and the locked dependencies;
+      # fails if uv.lock is out of date with pyproject.toml.
+      - run: uv sync --locked
+
+      - run: uv run ruff format --check .
+
+      # Unit tests plus the eval harness (retrieval recall + answer accuracy).
+      - run: uv run pytest -v
