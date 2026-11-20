@@ -14,14 +14,14 @@ class DocumentRepository:
 
     The repository owns its database connection: give it a URL and it creates the
     engine and the tables. Switching databases (e.g. SQLite to Postgres) is just a
-    different URL, such as settings.database_url; callers never touch the engine.
+    different URL, such as IndexLayout.database_url; callers never touch the engine.
     """
 
     def __init__(self, database_url: str):
         """Connect to `database_url` and create the tables if they don't exist yet.
 
-        Use "sqlite:///data/docs.db" for a file, or "sqlite://" for a throwaway
-        in-memory database (handy in tests).
+        Use an index's IndexLayout.database_url (e.g. "sqlite:///indexes/token-800/sql/docs.db")
+        for a file, or "sqlite://" for a throwaway in-memory database (handy in tests).
         """
         self.engine = create_engine(database_url)
         Base.metadata.create_all(self.engine)

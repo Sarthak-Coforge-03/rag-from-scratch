@@ -17,7 +17,7 @@ class ChromaVectorStore(BaseVectorStore):
     def __init__(self, location: str | Path, collection_name: str):
         """Open (or create) the collection stored in the folder `location`.
 
-        `location` is the folder Chroma keeps its files in (e.g. ".chroma"); every
+        `location` is the folder Chroma keeps its files in (e.g. IndexLayout.vector_dir(...)); every
         vector store takes (location, collection_name) so the factory can build any
         of them the same way.
 

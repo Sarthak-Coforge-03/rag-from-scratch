@@ -11,9 +11,10 @@ load_dotenv()  # reads .env once, at first import; real env vars take precedence
 class Settings:
     policy_docs_dir: Path = Path(os.getenv("POLICY_DOCS_DIR", "data/policies"))
     max_doc_bytes: int = int(os.getenv("MAX_DOC_BYTES", "5000000"))  # 5 MB
-    database_url: str = os.getenv("DATABASE_URL", "sqlite:///data/docs.db")
+    # Index folders (SQL + vectors) live under index_root; index_name picks one.
+    index_root: Path = Path(os.getenv("INDEX_ROOT", "indexes"))
+    index_name: str = os.getenv("INDEX_NAME", "default")
     vector_store: str = os.getenv("VECTOR_STORE", "chroma")
-    vector_store_location: str = os.getenv("VECTOR_STORE_LOCATION", ".chroma")
     vector_collection: str = os.getenv("VECTOR_COLLECTION", "policy_chunks")
     embed_provider: str = os.getenv("EMBED_PROVIDER", "sentence-transformers")
     embed_model: str = os.getenv("EMBED_MODEL", "all-MiniLM-L6-v2")

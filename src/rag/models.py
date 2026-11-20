@@ -78,3 +78,12 @@ class VectorMatch(BaseModel):
 
     chunk_id: str
     distance: float
+
+
+class IndexSummary(BaseModel):
+    """What one index folder holds, as reported by IndexManager.list_indexes()."""
+
+    name: str  # folder name under the index root, e.g. "token-800"
+    chunker_fingerprint: str  # settings that built its SQL data
+    embedder_fingerprints: list[str]  # one per vector folder, sorted
+    is_chunked: bool  # True once the chunk step has created sql/docs.db
