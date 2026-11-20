@@ -70,6 +70,16 @@ class DocumentRepository:
             chunks_by_id[chunk_id] for chunk_id in chunk_ids if chunk_id in chunks_by_id
         ]
 
+    def get_all_chunk_ids(self) -> list[str]:
+        """Return every stored chunk id, sorted.
+
+        The embed step compares these with the ids in a vector folder to find what
+        to embed and what to delete.
+        """
+        query = select(ChunkRow.chunk_id).order_by(ChunkRow.chunk_id)
+        with Session(self.engine) as session:
+            return list(session.scalars(query).all())
+
     def get_content_hashes(self) -> dict[str, str]:
         """Return {doc_id: content_hash} for every stored document.
 

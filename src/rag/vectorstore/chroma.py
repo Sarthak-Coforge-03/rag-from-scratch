@@ -77,6 +77,12 @@ class ChromaVectorStore(BaseVectorStore):
             matches.append(match)
         return matches
 
+    def list_ids(self) -> list[str]:
+        """Return every stored chunk id, sorted."""
+        # include=[] asks only for ids (always returned), not the stored vectors.
+        results = self.collection.get(include=[])
+        return sorted(results["ids"])
+
     def count(self) -> int:
         """Return how many chunk ids are stored in the collection."""
         return self.collection.count()

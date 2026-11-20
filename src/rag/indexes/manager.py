@@ -7,14 +7,16 @@ indexes/structural-800. One index = one chunker config, fixed when it is created
   structural-800_1, ...); writes sql/, chunker.txt and chunker_config.json
 - update: the chunk step rebuilds the chunker from chunker_config.json, so an
   index's settings can never change and nothing is ever wiped
-- vector folders are created only when asked for (prepare_vector_dir)
+- vector folders are created only when asked for (create_vector_dir); creating one
+  for a model that already has a folder deletes that folder and starts it over
 """
 
 import re
+import shutil
 from pathlib import Path
 
-from rag.indexes.layout import IndexLayout
-from rag.models import ChunkerConfig
+from rag.indexes.layout import EMBEDDER_CONFIG_FILE_NAME, IndexLayout
+from rag.models import ChunkerConfig, EmbedderConfig
 
 # Index names become folder names, so only plain characters are allowed: no "/" or
 # "..", which would let a name (e.g. a CLI argument) point outside the index root.
@@ -88,24 +90,56 @@ class IndexManager:
             )
         return layout
 
-    def prepare_vector_dir(self, name: str, embedder_fp: str) -> Path:
-        """Create (or reuse) the vector folder for one embedding model in a chunked index.
+    def create_vector_dir(
+        self, name: str, embedder_fp: str, config: EmbedderConfig
+    ) -> Path:
+        """Create an empty vector folder for one model in a chunked index.
 
-        This is the only place vector folders are created. Raises ValueError if the
-        folder already belongs to a different model (two model names that become
-        the same safe folder name).
+        If that model already has a folder it is deleted first, so the model is
+        embedded again from scratch; other models' folders are not touched.
+        Writes embedder.txt (readable fingerprint) and embedder_config.json
+        (settings to rebuild the embedder on --sync).
+
+        Raises ValueError if the index hasn't been chunked, or if the folder belongs
+        to a different model (two model names that become the same safe folder name).
         """
         layout = self.open_chunked(name)
+        vector_dir = layout.vector_dir(embedder_fp)
         embedder_file = layout.embedder_file(embedder_fp)
 
-        if embedder_file.exists():
+        if vector_dir.exists():
+            if not embedder_file.exists():
+                raise ValueError(
+                    f"{vector_dir} is not a vector folder; not deleting it"
+                )
             stored_embedder_fp = embedder_file.read_text()
             if stored_embedder_fp != embedder_fp:
                 raise ValueError(
-                    f"{embedder_file.parent} holds vectors from {stored_embedder_fp}, "
+                    f"{vector_dir} holds vectors from {stored_embedder_fp}, "
                     f"not {embedder_fp}"
                 )
+            shutil.rmtree(vector_dir)
 
-        embedder_file.parent.mkdir(parents=True, exist_ok=True)
+        vector_dir.mkdir(parents=True)
         embedder_file.write_text(embedder_fp)
-        return embedder_file.parent
+        layout.embedder_config_file(embedder_fp).write_text(
+            config.model_dump_json(indent=2)
+        )
+        return vector_dir
+
+    def read_embedder_configs(self, name: str) -> list[EmbedderConfig]:
+        """Return the settings of every vector folder in a chunked index, by folder name.
+
+        Folders without embedder_config.json are skipped. An empty list means the
+        index has no vectors yet.
+        """
+        layout = self.open_chunked(name)
+        if not layout.vectors_root.exists():
+            return []
+        configs = []
+        for vector_folder in sorted(layout.vectors_root.iterdir()):
+            config_file = vector_folder / EMBEDDER_CONFIG_FILE_NAME
+            if config_file.exists():
+                config = EmbedderConfig.model_validate_json(config_file.read_text())
+                configs.append(config)
+        return configs

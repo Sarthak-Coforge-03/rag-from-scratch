@@ -29,5 +29,9 @@ class BaseVectorStore(ABC):
         """Return up to top_k chunk ids nearest to the embedding, closest first."""
 
     @abstractmethod
+    def list_ids(self) -> list[str]:
+        """Return every stored chunk id, sorted (used to sync with the document database)."""
+
+    @abstractmethod
     def count(self) -> int:
         """Return how many chunk ids are stored."""

@@ -9,7 +9,7 @@ import pytest
 
 from rag.chunking import create_chunker
 from rag.indexes import IndexManager, chunker_fingerprint
-from rag.models import ChunkerConfig
+from rag.models import ChunkerConfig, EmbedderConfig
 
 STRUCTURAL_CONFIG = ChunkerConfig(
     strategy="structural", chunk_size=800, chunk_overlap=0
@@ -17,6 +17,12 @@ STRUCTURAL_CONFIG = ChunkerConfig(
 STRUCTURAL_CHUNKER = "StructuralChunker(size=800, overlap=0)"
 MINILM_EMBEDDER = "SentenceTransformerEmbedder(all-MiniLM-L6-v2)"
 BGE_EMBEDDER = "SentenceTransformerEmbedder(BAAI/bge-small-en-v1.5)"
+MINILM_CONFIG = EmbedderConfig(
+    provider="sentence-transformers", model_name="all-MiniLM-L6-v2"
+)
+BGE_CONFIG = EmbedderConfig(
+    provider="sentence-transformers", model_name="BAAI/bge-small-en-v1.5"
+)
 
 
 def test_saved_chunker_config_rebuilds_the_same_chunker(tmp_path):
@@ -75,21 +81,51 @@ def test_existing_folders_are_never_overwritten(tmp_path):
 
 
 def test_vectors_need_a_chunked_index_and_each_model_gets_its_own_folder(tmp_path):
-    """Before the chunk step has run there is nothing to embed; afterwards one folder per model."""
+    """Before the chunk step has run there is nothing to embed; afterwards one folder per model.
+
+    Each folder saves its model's settings, so --sync can rebuild every embedder.
+    """
     manager = IndexManager(tmp_path)
     layout = manager.create_index(
         "structural-800", STRUCTURAL_CHUNKER, STRUCTURAL_CONFIG
     )  # no docs.db yet
 
     with pytest.raises(ValueError):
-        manager.open_chunked("structural-800")
-    with pytest.raises(ValueError):
-        manager.prepare_vector_dir("structural-800", MINILM_EMBEDDER)
+        manager.create_vector_dir("structural-800", MINILM_EMBEDDER, MINILM_CONFIG)
 
     layout.database_file.write_text("chunks")  # the chunk step has now run
-    minilm_dir = manager.prepare_vector_dir("structural-800", MINILM_EMBEDDER)
-    bge_dir = manager.prepare_vector_dir("structural-800", BGE_EMBEDDER)
+    minilm_dir = manager.create_vector_dir(
+        "structural-800", MINILM_EMBEDDER, MINILM_CONFIG
+    )
+    bge_dir = manager.create_vector_dir("structural-800", BGE_EMBEDDER, BGE_CONFIG)
 
-    assert manager.open_chunked("structural-800").root == tmp_path / "structural-800"
     assert minilm_dir != bge_dir
     assert (bge_dir / "embedder.txt").read_text() == BGE_EMBEDDER
+    # Folders are listed in name order: BAAI... (bge) sorts before all-MiniLM.
+    assert manager.read_embedder_configs("structural-800") == [
+        BGE_CONFIG,
+        MINILM_CONFIG,
+    ]
+
+
+def test_create_vector_dir_again_starts_that_model_from_scratch(tmp_path):
+    """--create on a model that already has vectors deletes its folder; other models stay."""
+    manager = IndexManager(tmp_path)
+    layout = manager.create_index(
+        "structural-800", STRUCTURAL_CHUNKER, STRUCTURAL_CONFIG
+    )
+    layout.database_file.write_text("chunks")
+    minilm_dir = manager.create_vector_dir(
+        "structural-800", MINILM_EMBEDDER, MINILM_CONFIG
+    )
+    bge_dir = manager.create_vector_dir("structural-800", BGE_EMBEDDER, BGE_CONFIG)
+    old_minilm_vectors = minilm_dir / "old_vectors.bin"
+    old_minilm_vectors.write_text("stale")
+    bge_vectors = bge_dir / "vectors.bin"
+    bge_vectors.write_text("keep")
+
+    manager.create_vector_dir("structural-800", MINILM_EMBEDDER, MINILM_CONFIG)
+
+    assert not old_minilm_vectors.exists()
+    assert (minilm_dir / "embedder.txt").read_text() == MINILM_EMBEDDER
+    assert bge_vectors.exists()

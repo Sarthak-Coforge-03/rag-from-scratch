@@ -10,6 +10,7 @@ instead of building them by hand, so the structure is defined in one place:
       sql/docs.db                  documents and chunk text
       vectors/<embedder>/          one folder per embedding model
         embedder.txt               fingerprint of the model whose vectors live here
+        embedder_config.json       the same model as JSON, to rebuild that embedder
 """
 
 import re
@@ -20,6 +21,7 @@ from pydantic import BaseModel
 CHUNKER_FILE_NAME = "chunker.txt"
 CHUNKER_CONFIG_FILE_NAME = "chunker_config.json"
 EMBEDDER_FILE_NAME = "embedder.txt"
+EMBEDDER_CONFIG_FILE_NAME = "embedder_config.json"
 SQL_FOLDER_NAME = "sql"
 DATABASE_FILE_NAME = "docs.db"
 VECTORS_FOLDER_NAME = "vectors"
@@ -73,3 +75,7 @@ class IndexLayout(BaseModel):
     def embedder_file(self, embedder_fingerprint: str) -> Path:
         """File inside a model's vector folder recording that model's full fingerprint."""
         return self.vector_dir(embedder_fingerprint) / EMBEDDER_FILE_NAME
+
+    def embedder_config_file(self, embedder_fingerprint: str) -> Path:
+        """File inside a model's vector folder with its settings as JSON, read by --sync."""
+        return self.vector_dir(embedder_fingerprint) / EMBEDDER_CONFIG_FILE_NAME
