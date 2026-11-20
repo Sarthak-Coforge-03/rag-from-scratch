@@ -24,6 +24,11 @@ class Settings:
     chunk_overlap: int = int(os.getenv("CHUNK_OVERLAP", "150"))
     retriever_strategy: str = os.getenv("RETRIEVER", "vector")
     top_k: int = int(os.getenv("TOP_K", "5"))
+    rerank_provider: str = os.getenv("RERANK_PROVIDER", "cross-encoder")
+    rerank_model: str = os.getenv(
+        "RERANK_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    )
+    rerank_candidates: int = int(os.getenv("RERANK_CANDIDATES", "20"))
 
 
 settings = Settings()
