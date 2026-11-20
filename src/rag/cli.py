@@ -75,7 +75,7 @@ def run() -> None:
 def configure_logging() -> None:
     """Show this project's INFO logs, but only warnings from libraries (HF, HTTP)."""
     logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(message)s")
-    logging.getLogger("rag").setLevel(logging.INFO)
+    logging.getLogger("rag").setLevel(logging.CRITICAL)
 
 
 def choose(prompt: str, choices: list[str], preferred: str) -> str:
