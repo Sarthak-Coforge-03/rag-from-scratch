@@ -227,8 +227,5 @@ CLAUDE.local.md
 .vscode
 plan.local.md
 
-# Local SQLite document store
-data/*.db
-
-# Local Chroma vector store
-.chroma/
+# Index folders: each holds its own SQLite database and vector-store folders
+/indexes/
