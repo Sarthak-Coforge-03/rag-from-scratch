@@ -119,6 +119,17 @@ Sources (* = cited):
    [2] travel_policy                                TRV-001        score  -2.310
 ```
 
+## Evaluate
+
+```sh
+uv run pytest tests/test_eval_harness.py -v    # recall + answer accuracy, 8 questions
+```
+
+The questions, with their expected documents and key facts, live in
+`evals/eval_set.yaml`. The harness builds a fresh index from your `.env` settings
+and searches it with `RETRIEVER` and `TOP_K`. Answer cases call the LLM and are
+skipped when `LLM_ENDPOINT` or `ANTHROPIC_FOUNDRY_API_KEY` is not set.
+
 ## Other commands
 
 ```sh
