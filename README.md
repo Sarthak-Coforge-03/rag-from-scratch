@@ -20,12 +20,14 @@ Settings (environment variables or `.env`):
 | `CHUNK_STRATEGY` | `token` | `token`, `recursive` or `structural` |
 | `CHUNK_SIZE` | `800` | characters per chunk |
 | `CHUNK_OVERLAP` | `150` | characters; ignored (with a warning) by `recursive` and `structural` |
-| `EMBED_MODEL` | `all-MiniLM-L6-v2` | sentence-transformers model |
+| `EMBED_PROVIDER` | `sentence-transformers` | embedding library (`--create` only) |
+| `EMBED_MODEL` | `all-MiniLM-L6-v2` | embedding model (`--create` only) |
+| `EMBED_BATCH_SIZE` | `64` | chunks embedded per batch |
 
 ## Indexes
 
-An index is a folder under `INDEX_ROOT` holding the chunked documents (SQLite) and, later,
-their vectors. Its chunker settings are fixed when it is created.
+An index is a folder under `INDEX_ROOT` holding the chunked documents (SQLite) and
+their vectors (one folder per embedding model). Its chunker settings are fixed when it is created.
 
 ### Create a new index
 
@@ -49,6 +51,28 @@ uv run python scripts/02_chunk.py --sync structural-800
 
 An unknown name stops with `Error: Index 'NAME' not found` and exit code 1.
 
+### Embed an index
+
+Run after the chunk step. `--create` builds the vector folder for `EMBED_MODEL`; if
+that model already has one, it is deleted and every chunk is embedded again.
+
+```sh
+uv run python scripts/03_embed.py --create structural-800
+# -> Chunks : 73 embedded, 0 deleted, 0 unchanged (73 in SQL)
+```
+
+### Sync vectors after the documents change
+
+The chunk step only updates SQL, so after `02_chunk.py --sync` the vector folders are
+out of date. `--sync` updates **every** vector folder in the index, each with the model
+it was created with (`EMBED_MODEL` is ignored): new chunks are embedded, removed ones
+deleted, the rest left alone.
+
+```sh
+uv run python scripts/02_chunk.py --sync structural-800    # 1. documents -> SQL
+uv run python scripts/03_embed.py --sync structural-800    # 2. SQL -> every vector folder
+```
+
 ### See or delete indexes
 
 ```sh
@@ -64,7 +88,9 @@ indexes/structural-800/
   chunker.txt            StructuralChunker(size=800, overlap=0)
   chunker_config.json    the same settings, read back on --sync
   sql/docs.db            documents and chunk text
-  vectors/<model>/       one folder per embedding model (embed step, coming next)
+  vectors/<model>/       one folder per embedding model
+    embedder.txt         SentenceTransformerEmbedder(all-MiniLM-L6-v2)
+    embedder_config.json the same model, read back on --sync
 ```
 
 To compare chunking settings, create one index per setting (e.g. `structural-800`

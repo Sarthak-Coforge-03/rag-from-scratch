@@ -92,6 +92,24 @@ class ChunkerConfig(BaseModel):
     chunk_overlap: int
 
 
+class EmbedderConfig(BaseModel):
+    """The model a vector folder was created with, saved so --sync rebuilds the same embedder.
+
+    Stored as embedder_config.json inside the vector folder, next to embedder.txt.
+    """
+
+    provider: str  # a key of EMBEDDER_CLASSES, e.g. "sentence-transformers"
+    model_name: str  # e.g. "all-MiniLM-L6-v2"
+
+
+class VectorSyncReport(BaseModel):
+    """What one embed-step run did to one vector folder, counted in chunks."""
+
+    embedded: int  # in SQL but not in the folder: embedded and added
+    deleted: int  # in the folder but no longer in SQL: removed
+    unchanged: int  # in both: left alone
+
+
 class IngestReport(BaseModel):
     """What one chunk-step run did to each document, by doc_id (each list sorted)."""
 
