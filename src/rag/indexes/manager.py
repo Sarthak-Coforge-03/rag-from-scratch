@@ -77,6 +77,21 @@ class IndexManager:
             )
         return ChunkerConfig.model_validate_json(layout.chunker_config_file.read_text())
 
+    def list_index_names(self) -> list[str]:
+        """Names of the indexes the chunk step has filled, sorted (for the CLI menu).
+
+        Uses the same check as open_chunked, so every listed name can be opened.
+        """
+        if not self.root_dir.exists():
+            return []
+        index_names = []
+        for folder in sorted(self.root_dir.iterdir()):
+            layout = IndexLayout(root=folder)
+            is_chunked = layout.chunker_file.exists() and layout.database_file.exists()
+            if folder.is_dir() and is_chunked:
+                index_names.append(folder.name)
+        return index_names
+
     def open_chunked(self, name: str) -> IndexLayout:
         """Return an index that the chunk step has already filled; never writes.
 

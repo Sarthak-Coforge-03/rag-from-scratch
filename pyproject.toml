@@ -14,10 +14,14 @@ dependencies = [
     "pydantic>=2.14.3",
     "python-dotenv>=1.2.4",
     "pyyaml>=6.0.3",
+    "questionary>=2.1.1",
     "rank-bm25>=0.2.2",
     "sentence-transformers>=6.3.0",
     "sqlalchemy>=2.1.9",
 ]
+
+[project.scripts]
+rag-from-scratch = "rag.cli:main"
 
 [tool.uv.build-backend]
 module-name = "rag"

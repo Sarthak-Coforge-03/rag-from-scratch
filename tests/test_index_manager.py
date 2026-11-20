@@ -129,3 +129,17 @@ def test_create_vector_dir_again_starts_that_model_from_scratch(tmp_path):
     assert not old_minilm_vectors.exists()
     assert (minilm_dir / "embedder.txt").read_text() == MINILM_EMBEDDER
     assert bge_vectors.exists()
+
+
+def test_list_index_names_shows_only_chunked_indexes(tmp_path):
+    """The CLI's index menu lists indexes the chunk step has filled, nothing else."""
+    manager = IndexManager(tmp_path)
+    chunked_layout = manager.create_index(
+        "structural-800", STRUCTURAL_CHUNKER, STRUCTURAL_CONFIG
+    )
+    chunked_layout.database_file.write_text("")  # what the chunk step leaves behind
+    manager.create_index("token-800", "TokenChunker(size=800)", STRUCTURAL_CONFIG)
+    (tmp_path / "notes.txt").write_text("not an index")
+
+    # token-800 was created but never chunked, so it can't be searched yet.
+    assert manager.list_index_names() == ["structural-800"]

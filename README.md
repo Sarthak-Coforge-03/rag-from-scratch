@@ -96,6 +96,29 @@ indexes/structural-800/
 To compare chunking settings, create one index per setting (e.g. `structural-800`
 and `token-800`) and point later steps at the one you want.
 
+## Ask questions
+
+Needs a chunked and embedded index, plus `LLM_ENDPOINT` (ending in `/anthropic`)
+and `ANTHROPIC_FOUNDRY_API_KEY` in `.env`.
+
+```sh
+uv run rag-from-scratch
+```
+
+Menus pick the index, retriever (vector / keyword / hybrid), whether to rerank, and
+the LLM; your `.env` values are preselected. Then type questions; an empty question
+(or Ctrl-C) quits. Each answer is followed by every chunk it was shown, with the
+ones it cited marked `*`:
+
+```
+Answer:
+Expenses over $2,500 need director approval.
+
+Sources (* = cited):
+ * [1] expense_reimbursement_policy                 EXP-001 v3.0   score   4.952
+   [2] travel_policy                                TRV-001        score  -2.310
+```
+
 ## Other commands
 
 ```sh
