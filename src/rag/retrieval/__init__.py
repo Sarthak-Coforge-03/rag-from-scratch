@@ -8,6 +8,8 @@ Layout — one class per file:
               over chunk text loaded from the document database.
 - hybrid.py   HybridRetriever, strategy "hybrid": runs vector + keyword and merges their
               rankings with reciprocal rank fusion.
+- reranked.py RerankedRetriever: wraps any retriever (usually hybrid) and reorders its
+              candidates with a reranker (rag.reranking) before keeping top_k.
 - factory.py  RETRIEVER_STRATEGIES and create_retriever(), which picks a strategy by name.
 
 To add a strategy: write a BaseRetriever subclass in its own file, add its name to
@@ -18,6 +20,7 @@ from rag.retrieval.base import BaseRetriever
 from rag.retrieval.factory import RETRIEVER_STRATEGIES, create_retriever
 from rag.retrieval.hybrid import HybridRetriever
 from rag.retrieval.keyword import KeywordRetriever
+from rag.retrieval.reranked import RerankedRetriever
 from rag.retrieval.vector import VectorRetriever
 
 __all__ = [
@@ -25,6 +28,7 @@ __all__ = [
     "BaseRetriever",
     "HybridRetriever",
     "KeywordRetriever",
+    "RerankedRetriever",
     "VectorRetriever",
     "create_retriever",
 ]
