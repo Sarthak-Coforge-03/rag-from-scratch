@@ -47,6 +47,8 @@ def build_user_message(question: str, retrieved: list[RetrievedChunk]) -> str:
         chunk = retrieved[position].chunk
         label = policy_label(chunk.metadata.policy_id, chunk.metadata.version)
         heading = f"[{source_number}] {chunk.metadata.doc_id} ({label})"
+        if chunk.metadata.section:
+            heading = f"{heading} — {chunk.metadata.section}"
         source_blocks.append(f"{heading}\n{chunk.text}")
 
     sources_text = "\n\n".join(source_blocks)

@@ -29,6 +29,8 @@ def test_get_chunks_returns_saved_chunks_in_requested_order():
 
     assert [chunk.chunk_id for chunk in loaded_chunks] == requested_ids
     assert loaded_chunks == list(reversed(chunks))
+    # Sections are set on the PTO chunks, so the equality above covers them too.
+    assert any(chunk.metadata.section for chunk in loaded_chunks)
 
 
 def test_saving_a_document_again_replaces_its_chunks():

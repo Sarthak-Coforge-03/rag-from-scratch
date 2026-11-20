@@ -130,6 +130,7 @@ def chunk_to_row(chunk: Chunk) -> ChunkRow:
         start_index=chunk.metadata.start_index,
         end_index=chunk.metadata.end_index,
         token_count=chunk.metadata.token_count,
+        section=chunk.metadata.section,
         text=chunk.text,
     )
 
@@ -153,5 +154,6 @@ def row_to_chunk(row: ChunkRow) -> Chunk:
         start_index=row.start_index,
         end_index=row.end_index,
         token_count=row.token_count,
+        section=row.section,
     )
     return Chunk(chunk_id=row.chunk_id, text=row.text, metadata=metadata)
