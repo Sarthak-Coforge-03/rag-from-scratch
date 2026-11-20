@@ -97,3 +97,49 @@ def test_unknown_retriever_strategy_is_rejected(tmp_path):
             embedder=parts["embedder"],
             vector_store=parts["vector_store"],
         )
+
+
+def make_keyword_retriever(parts):
+    """Keyword search only needs the document database; the other parts are ignored."""
+    return create_retriever(
+        strategy="keyword",
+        repository=parts["repository"],
+        embedder=parts["embedder"],
+        vector_store=parts["vector_store"],
+    )
+
+
+def test_keyword_retriever_finds_an_exact_term_and_ignores_punctuation(tmp_path):
+    """ "$75" appears only in the expenses doc; a query with no words returns nothing."""
+    parts = make_search_parts(tmp_path)
+    retriever = make_keyword_retriever(parts)
+
+    results = retriever.retrieve("$75", top_k=2)
+    no_words_results = retriever.retrieve("?!", top_k=2)
+
+    assert [result.chunk.metadata.doc_id for result in results] == ["expenses"]
+    assert results[0].chunk.metadata.title == "Expenses"
+    assert no_words_results == []
+
+
+def test_keyword_retriever_built_after_rechunk_sees_the_new_text(tmp_path):
+    """A keyword retriever built after re-ingesting finds new text and not old text.
+
+    Its BM25 index is a snapshot of the chunks in SQL when it is created, so after the
+    chunk step a new retriever is built (each script run creates its own anyway).
+    """
+    parts = make_search_parts(tmp_path)
+    docs_folder = tmp_path / "docs"
+    (docs_folder / "expenses.md").write_text("# Expenses\n\nAsk your manager first.")
+    (docs_folder / "security.md").unlink()
+    chunker = create_chunker(strategy="token", chunk_size=800, chunk_overlap=0)
+    Ingestor(repository=parts["repository"], chunker=chunker).ingest_folder(
+        docs_folder, NO_SIZE_LIMIT
+    )
+
+    retriever = make_keyword_retriever(parts)
+
+    assert retriever.retrieve("$75", top_k=2) == []
+    assert retriever.retrieve("passwords", top_k=2) == []
+    new_text_results = retriever.retrieve("manager", top_k=2)
+    assert [result.chunk.metadata.doc_id for result in new_text_results] == ["expenses"]
