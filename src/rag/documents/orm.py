@@ -51,6 +51,7 @@ class ChunkRow(Base):
     start_index: Mapped[int]
     end_index: Mapped[int]
     token_count: Mapped[int]
+    section: Mapped[str]  # nearest heading above the chunk; "" if none
     text: Mapped[str] = mapped_column(Text)
 
     document: Mapped[DocumentRow] = relationship(back_populates="chunks")

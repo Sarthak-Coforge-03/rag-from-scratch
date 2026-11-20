@@ -2,10 +2,11 @@
 
 Subclasses only decide how raw text is split (split_text). Everything else —
 building Chunk/ChunkMetadata and chunk ids — lives here, so every strategy produces
-Chunks the same way. No assumptions are made about markdown structure: chunks carry
-document-level metadata plus their character offsets.
+Chunks the same way. Chunks carry document-level metadata, their character offsets,
+and their section: the nearest markdown heading above them ("" if there is none).
 """
 
+import re
 from abc import ABC, abstractmethod
 
 import chonkie
@@ -61,6 +62,7 @@ class BaseChunker(ABC):
                 start_index=piece.start_index,
                 end_index=piece.end_index,
                 token_count=piece.token_count,
+                section=section_at(document.text, first_text_position(piece)),
             )
             chunk = Chunk(
                 chunk_id=f"{document.doc_id}::{content_fingerprint}::{index}",
@@ -76,3 +78,30 @@ class BaseChunker(ABC):
         for document in documents:
             all_chunks.extend(self.chunk_document(document))
         return all_chunks
+
+
+# A markdown heading line: 1-6 "#", a space, then the heading text.
+HEADING_LINE = re.compile(r"^#{1,6}\s+(.+?)\s*$", re.MULTILINE)
+
+
+def section_at(text: str, position: int) -> str:
+    """The text of the last heading that starts at or before `position`; "" if none.
+
+    e.g. a position inside the "## EXP-7 Approvals" section gives "EXP-7 Approvals".
+    """
+    section = ""
+    for heading in HEADING_LINE.finditer(text):
+        if heading.start() > position:
+            break
+        section = heading.group(1)
+    return section
+
+
+def first_text_position(piece: chonkie.Chunk) -> int:
+    """Where the piece's first non-blank character is, in the document text.
+
+    A chunk that begins "\\n\\n## EXP-7 ..." belongs to EXP-7, not to the section
+    before those blank lines.
+    """
+    leading_blank_length = len(piece.text) - len(piece.text.lstrip())
+    return piece.start_index + leading_blank_length

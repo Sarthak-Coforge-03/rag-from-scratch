@@ -60,6 +60,30 @@ def test_structural_strategy_starts_a_chunk_at_a_heading(tmp_path):
     assert "## Second" in chunk_starts
 
 
+def test_chunks_carry_the_heading_they_start_under(tmp_path):
+    """Each chunk's section is the nearest heading above its start; none above means ""."""
+    section_body = "This sentence pads the section so it fills most of a chunk. " * 2
+    with_headings = tmp_path / "expenses.md"
+    with_headings.write_text(
+        f"Intro before any heading. {section_body}\n\n"
+        f"## EXP-6 Submitting\n\n{section_body}\n\n"
+        f"## EXP-7 Approvals\n\n{section_body}\n"
+    )
+    without_headings = tmp_path / "memo.md"
+    without_headings.write_text("A memo with no headings at all.\n")
+    chunker = create_chunker(strategy="structural", chunk_size=150, chunk_overlap=0)
+
+    chunks = chunker.chunk_document(load_document(with_headings))
+    memo_chunks = chunker.chunk_document(load_document(without_headings))
+
+    assert [chunk.metadata.section for chunk in chunks] == [
+        "",
+        "EXP-6 Submitting",
+        "EXP-7 Approvals",
+    ]
+    assert [chunk.metadata.section for chunk in memo_chunks] == [""]
+
+
 def test_unknown_strategy_is_rejected():
     """A typo in CHUNK_STRATEGY should fail at startup, not fall back to some default silently."""
     with pytest.raises(ValueError):

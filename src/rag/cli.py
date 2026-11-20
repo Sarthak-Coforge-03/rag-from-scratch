@@ -173,7 +173,7 @@ def print_answer(answer: Answer) -> None:
         cited_mark = "*" if result.chunk.chunk_id in cited_chunk_ids else " "
         label = policy_label(metadata.policy_id, metadata.version)
         print(
-            f" {cited_mark} [{position + 1}] {metadata.doc_id:<40} {label:<14}"
-            f" score {result.score:7.3f}"
+            f" {cited_mark} [{position + 1}] {metadata.doc_id:<36} {label:<14}"
+            f" {metadata.section:<30.30} score {result.score:7.3f}"
         )
     print()

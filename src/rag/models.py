@@ -54,6 +54,8 @@ class ChunkMetadata(BaseModel):
     start_index: int  # character offsets of the chunk inside Document.text
     end_index: int
     token_count: int
+    # Nearest markdown heading above the chunk, e.g. "EXP-7 Approvals"; "" if none.
+    section: str = ""
 
 
 class Chunk(BaseModel):
