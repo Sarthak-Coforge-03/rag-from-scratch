@@ -6,10 +6,20 @@ Layout — one class per file:
 - layout.py        IndexLayout: every path inside one index folder (no disk access).
 - manager.py       IndexManager: the only code that creates, inspects or deletes index
                    folders (by name under INDEX_ROOT); see its docstring for the rules.
+- searchable_index.py  load_searchable_index() -> SearchableIndex: an index's SQL data,
+                   embedding model and vectors loaded and checked, ready for retrievers.
 """
 
 from rag.indexes.fingerprints import chunker_fingerprint, embedder_fingerprint
 from rag.indexes.layout import IndexLayout
 from rag.indexes.manager import IndexManager
+from rag.indexes.searchable_index import SearchableIndex, load_searchable_index
 
-__all__ = ["IndexLayout", "IndexManager", "chunker_fingerprint", "embedder_fingerprint"]
+__all__ = [
+    "IndexLayout",
+    "IndexManager",
+    "SearchableIndex",
+    "chunker_fingerprint",
+    "embedder_fingerprint",
+    "load_searchable_index",
+]
