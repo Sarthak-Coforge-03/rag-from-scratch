@@ -103,6 +103,25 @@ class RetrievedChunk(BaseModel):
     score: float
 
 
+class CitedAnswer(BaseModel):
+    """The shape the LLM must reply in (structured output), so citations need no parsing.
+
+    The prompt numbers the sources [1], [2], ...; source_numbers lists the ones the
+    answer used, and is empty when the sources don't contain the answer.
+    """
+
+    answer: str
+    source_numbers: list[int]
+
+
+class Answer(BaseModel):
+    """A finished answer: its text, the chunks it cites, and every chunk it was shown."""
+
+    text: str
+    cited_sources: list[RetrievedChunk]  # the model's citations, in its order
+    retrieved: list[RetrievedChunk]  # all retrieved chunks; retrieved[0] was [1]
+
+
 class EmbedderConfig(BaseModel):
     """The model a vector folder was created with, saved so --sync rebuilds the same embedder.
 
