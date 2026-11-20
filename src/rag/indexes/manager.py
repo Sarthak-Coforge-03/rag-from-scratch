@@ -1,28 +1,20 @@
-"""IndexManager: the only code that creates, inspects or deletes index folders.
+"""IndexManager: the only code that creates index folders.
 
 Indexes are addressed by name under one root folder (INDEX_ROOT), e.g.
-indexes/token-800. One index = one chunker config; different configs live side by
-side under different names.
+indexes/structural-800. One index = one chunker config, fixed when it is created:
 
-Rules:
-- chunk step, new name                      -> create sql/ and chunker.txt (no vectors)
-- chunk step, existing name, same config    -> keep everything
-- chunk step, existing name, other config   -> wipe that index (SQL and all vectors),
-                                               recreate only sql/ and chunker.txt
-- vector folders are created only when asked for (prepare_vector_dir), never rebuilt
-  automatically
-- a folder without chunker.txt is never wiped: every write operation refuses it
+- create: always a brand-new folder (next_free_name picks structural-800, then
+  structural-800_1, ...); writes sql/, chunker.txt and chunker_config.json
+- update: the chunk step rebuilds the chunker from chunker_config.json, so an
+  index's settings can never change and nothing is ever wiped
+- vector folders are created only when asked for (prepare_vector_dir)
 """
 
-import logging
 import re
-import shutil
 from pathlib import Path
 
-from rag.indexes.layout import EMBEDDER_FILE_NAME, IndexLayout
-from rag.models import IndexSummary
-
-logger = logging.getLogger(__name__)
+from rag.indexes.layout import IndexLayout
+from rag.models import ChunkerConfig
 
 # Index names become folder names, so only plain characters are allowed: no "/" or
 # "..", which would let a name (e.g. a CLI argument) point outside the index root.
@@ -30,7 +22,7 @@ VALID_INDEX_NAME = re.compile(r"[A-Za-z0-9._-]+")
 
 
 class IndexManager:
-    """Creates, opens, lists and deletes the index folders under one root folder."""
+    """Creates and opens the index folders under one root folder."""
 
     def __init__(self, root_dir: Path):
         """Manage the index folders inside root_dir (e.g. settings.index_root)."""
@@ -44,41 +36,45 @@ class IndexManager:
             )
         return IndexLayout(root=self.root_dir / name)
 
-    def prepare_for_chunking(self, name: str, chunker_fp: str) -> IndexLayout:
-        """Get an index ready for the chunk step with this chunker config.
+    def next_free_name(self, base_name: str) -> str:
+        """Return base_name if no folder has it yet, else base_name_1, base_name_2, ...
 
-        Creates a new index, keeps one built with the same config, or wipes and
-        recreates one built with a different config. Refuses a non-empty folder
-        that isn't an index, so unrelated files are never deleted.
+        Used when creating an index from env settings, so an existing index is never
+        reused or overwritten by accident.
+        """
+        candidate = base_name
+        counter = 0
+        while self.layout(candidate).root.exists():
+            counter += 1
+            candidate = f"{base_name}_{counter}"
+        return candidate
+
+    def create_index(
+        self, name: str, chunker_fp: str, config: ChunkerConfig
+    ) -> IndexLayout:
+        """Create a new index folder with its chunker settings; ValueError if it exists.
+
+        Writes sql/ (empty until the chunk step runs), chunker.txt (readable
+        fingerprint) and chunker_config.json (settings to rebuild the chunker).
+        Refusing any existing folder means nothing is ever overwritten.
         """
         layout = self.layout(name)
-
         if layout.root.exists():
-            if not layout.chunker_file.exists():
-                folder_is_empty = not any(layout.root.iterdir())
-                if not folder_is_empty:
-                    raise ValueError(
-                        f"{layout.root} is not empty and is not an index "
-                        "(no chunker.txt); refusing to use it. Pick another name."
-                    )
-            else:
-                stored_chunker_fp = layout.chunker_file.read_text()
-                if stored_chunker_fp == chunker_fp:
-                    return layout
-                dropped_models = self._embedder_fingerprints(layout)
-                logger.warning(
-                    "Index %r was chunked with %s; rebuilding it for %s "
-                    "(SQL data and %d vector folder(s) removed)",
-                    name,
-                    stored_chunker_fp,
-                    chunker_fp,
-                    len(dropped_models),
-                )
-                shutil.rmtree(layout.root)
-
-        layout.sql_dir.mkdir(parents=True, exist_ok=True)
+            raise ValueError(f"{layout.root} already exists; pick another name")
+        layout.sql_dir.mkdir(parents=True)
         layout.chunker_file.write_text(chunker_fp)
+        layout.chunker_config_file.write_text(config.model_dump_json(indent=2))
         return layout
+
+    def read_chunker_config(self, name: str) -> ChunkerConfig:
+        """Return the settings an index was created with; ValueError if it has none."""
+        layout = self.layout(name)
+        if not layout.chunker_config_file.exists():
+            raise ValueError(
+                f"Index {name!r} not found (no {layout.chunker_config_file}); "
+                "run without --index to create one"
+            )
+        return ChunkerConfig.model_validate_json(layout.chunker_config_file.read_text())
 
     def open_chunked(self, name: str) -> IndexLayout:
         """Return an index that the chunk step has already filled; never writes.
@@ -114,46 +110,3 @@ class IndexManager:
         embedder_file.parent.mkdir(parents=True, exist_ok=True)
         embedder_file.write_text(embedder_fp)
         return embedder_file.parent
-
-    def list_indexes(self) -> list[IndexSummary]:
-        """Describe every index under the root, sorted by name (folders that aren't indexes are skipped)."""
-        if not self.root_dir.exists():
-            return []
-
-        summaries = []
-        for folder in sorted(self.root_dir.iterdir()):
-            layout = IndexLayout(root=folder)
-            if not folder.is_dir() or not layout.chunker_file.exists():
-                continue
-            summary = IndexSummary(
-                name=folder.name,
-                chunker_fingerprint=layout.chunker_file.read_text(),
-                embedder_fingerprints=self._embedder_fingerprints(layout),
-                is_chunked=layout.database_file.exists(),
-            )
-            summaries.append(summary)
-        return summaries
-
-    def delete_index(self, name: str) -> None:
-        """Delete an index folder with all its SQL and vector data.
-
-        Raises ValueError if the folder doesn't exist or isn't an index.
-        """
-        layout = self.layout(name)
-        if not layout.chunker_file.exists():
-            raise ValueError(
-                f"{layout.root} is not an index (no chunker.txt); not deleting it"
-            )
-        shutil.rmtree(layout.root)
-        logger.info("Deleted index %r", name)
-
-    def _embedder_fingerprints(self, layout: IndexLayout) -> list[str]:
-        """Fingerprints of the models that have a vector folder in this index, sorted."""
-        if not layout.vectors_root.exists():
-            return []
-        fingerprints = []
-        for vector_folder in sorted(layout.vectors_root.iterdir()):
-            embedder_file = vector_folder / EMBEDDER_FILE_NAME
-            if embedder_file.exists():
-                fingerprints.append(embedder_file.read_text())
-        return fingerprints
