@@ -4,22 +4,33 @@
 
 Menus pick the index, retriever, reranking and LLM (the .env values preselected),
 then it keeps asking questions until you enter an empty one. Indexes are prepared
-by scripts/02_chunk.py and scripts/03_embed.py; this CLI only loads one and
-answers from it.
+by scripts/02_chunk.py and scripts/03_embed.py; the first menu entry instead builds
+a fresh one from the .env settings in a temporary folder, deleted on quit.
 """
 
 import logging
 import sys
+import tempfile
+from pathlib import Path
 
 import questionary
 
 from rag.answering import answer_question, policy_label
 from rag.config import settings
 from rag.generation import GENERATOR_CLASSES, create_generator
-from rag.indexes import IndexManager, SearchableIndex, load_searchable_index
+from rag.indexes import (
+    IndexManager,
+    SearchableIndex,
+    build_index,
+    load_searchable_index,
+)
 from rag.models import Answer
 from rag.reranking import create_reranker
 from rag.retrieval import RETRIEVER_STRATEGIES, BaseRetriever, RerankedRetriever
+
+
+# First entry of the index menu: chunk and embed from .env into a temp folder.
+FRESH_INDEX_CHOICE = "Build a fresh index from .env (temporary)"
 
 
 class QuitRequested(Exception):
@@ -38,28 +49,49 @@ def main() -> None:
 
 
 def run() -> None:
-    """The whole session: choices, loading, then the question loop."""
+    """The whole session: choices, then loading, then the question loop."""
     # 1. Choose what to search and how.
     manager = IndexManager(settings.index_root)
-    index_name = choose("Index:", manager.list_index_names(), settings.index_name)
-    embed_model = choose_embedding_model(manager, index_name)
+    index_choices = [FRESH_INDEX_CHOICE] + manager.list_index_names()
+    index_name = choose("Index:", index_choices, settings.index_name)
+    build_fresh = index_name == FRESH_INDEX_CHOICE
+    embed_model = None if build_fresh else choose_embedding_model(manager, index_name)
     strategy = choose(
         "Retriever:", list(RETRIEVER_STRATEGIES), settings.retriever_strategy
     )
     rerank = confirm("Rerank the retrieved chunks?")
     llm_provider = choose("LLM:", list(GENERATOR_CLASSES), settings.llm_provider)
 
-    # 2. Load everything once; loading the models takes a few seconds.
-    print("Loading index and models...", flush=True)
-    searchable_index = load_searchable_index(index_name, embed_model)
+    # 2. Load the chosen index, or build a fresh one that is deleted on quit.
+    if not build_fresh:
+        print("Loading index and models...", flush=True)
+        searchable_index = load_searchable_index(index_name, embed_model)
+        ask_questions(searchable_index, strategy, rerank, llm_provider)
+        return
+
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temp_folder:
+        temp_root = Path(temp_folder)
+        print(
+            f"Building index from {settings.policy_docs_dir} (chunk, then embed)...",
+            flush=True,
+        )
+        fresh_index_name = build_index(temp_root, settings.policy_docs_dir)
+        searchable_index = load_searchable_index(fresh_index_name, index_root=temp_root)
+        ask_questions(searchable_index, strategy, rerank, llm_provider)
+
+
+def ask_questions(
+    searchable_index: SearchableIndex, strategy: str, rerank: bool, llm_provider: str
+) -> None:
+    """Build the retriever and LLM, then answer questions until an empty one."""
     retriever = build_retriever(searchable_index, strategy, rerank)
     generator = create_generator(llm_provider, settings.llm_model)
     retriever_label = f"{strategy} + rerank" if rerank else strategy
     print(
-        f"Index: {index_name} | Retriever: {retriever_label} | LLM: {settings.llm_model}"
+        f"Index: {searchable_index.name} | Retriever: {retriever_label}"
+        f" | LLM: {settings.llm_model}"
     )
 
-    # 3. Keep answering until an empty question.
     while True:
         question = questionary.text("Question (empty to quit):").ask()
         if not question:
