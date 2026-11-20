@@ -80,6 +80,15 @@ class VectorMatch(BaseModel):
     distance: float
 
 
+class IngestReport(BaseModel):
+    """What one chunk-step run did to each document, by doc_id (each list sorted)."""
+
+    added: list[str] = []  # new files, chunked and saved
+    updated: list[str] = []  # content hash changed, re-chunked and replaced
+    unchanged: list[str] = []  # same content hash, skipped
+    removed: list[str] = []  # stored before but the file is gone, deleted
+
+
 class IndexSummary(BaseModel):
     """What one index folder holds, as reported by IndexManager.list_indexes()."""
 
