@@ -7,7 +7,9 @@ from rag.documents import DocumentRepository
 from rag.embed import sync_vectors
 from rag.embedding import BaseEmbedder
 from rag.ingest import Ingestor
-from rag.retrieval import create_retriever
+from rag.models import Chunk, ChunkMetadata, RetrievedChunk
+from rag.retrieval import BaseRetriever, HybridRetriever, create_retriever
+from rag.retrieval.keyword import split_into_words
 from rag.vectorstore import ChromaVectorStore
 
 NO_SIZE_LIMIT = 5_000_000
@@ -122,6 +124,17 @@ def test_keyword_retriever_finds_an_exact_term_and_ignores_punctuation(tmp_path)
     assert no_words_results == []
 
 
+def test_keyword_words_keep_codes_and_numbers_whole():
+    """Section codes and amounts stay one word, so "SEC-4" can't match any chunk with a 4.
+
+    Joining characters (- . ,) only count inside a word; sentence punctuation and
+    filler words ("who", "or") are dropped, so they can't outweigh the code.
+    """
+    words = split_into_words("Who approves $2,500 under SEC-7.2 or EXP-4? Ask HR.")
+
+    assert words == ["approves", "2,500", "under", "sec-7.2", "exp-4", "ask", "hr"]
+
+
 def test_keyword_retriever_built_after_rechunk_sees_the_new_text(tmp_path):
     """A keyword retriever built after re-ingesting finds new text and not old text.
 
@@ -143,3 +156,66 @@ def test_keyword_retriever_built_after_rechunk_sees_the_new_text(tmp_path):
     assert retriever.retrieve("passwords", top_k=2) == []
     new_text_results = retriever.retrieve("manager", top_k=2)
     assert [result.chunk.metadata.doc_id for result in new_text_results] == ["expenses"]
+
+
+def make_chunk(chunk_id: str) -> Chunk:
+    """A placeholder chunk; only its id matters to the fusion arithmetic."""
+    metadata = ChunkMetadata(
+        doc_id=chunk_id,
+        title=chunk_id,
+        policy_id="",
+        version="",
+        effective_date="",
+        source_path="placeholder.md",
+        chunk_index=0,
+        start_index=0,
+        end_index=0,
+        token_count=0,
+    )
+    return Chunk(chunk_id=chunk_id, text=chunk_id, metadata=metadata)
+
+
+class FixedListRetriever(BaseRetriever):
+    """Fake retriever: returns the same ranked chunk ids for every query."""
+
+    def __init__(self, ranked_chunk_ids: list[str]):
+        """Remember the ranking to return, best first."""
+        self.ranked_chunk_ids = ranked_chunk_ids
+
+    def retrieve(self, query: str, top_k: int) -> list[RetrievedChunk]:
+        """Return the fixed ranking, cut to top_k; scores are unused by fusion."""
+        return [
+            RetrievedChunk(chunk=make_chunk(chunk_id), score=0.0)
+            for chunk_id in self.ranked_chunk_ids[:top_k]
+        ]
+
+
+def test_hybrid_ranks_a_chunk_found_by_both_retrievers_first():
+    """Reciprocal rank fusion: each list gives a chunk 1 / (60 + rank); the sums decide.
+
+    vector A,B,C and keyword D,A -> A gets 1/61 + 1/62 and wins; D (1/61) beats
+    B (1/62) beats C (1/63).
+    """
+    vector_like = FixedListRetriever(["A", "B", "C"])
+    keyword_like = FixedListRetriever(["D", "A"])
+    hybrid = HybridRetriever(retrievers=[vector_like, keyword_like])
+
+    results = hybrid.retrieve("any question", top_k=4)
+
+    assert [result.chunk.chunk_id for result in results] == ["A", "D", "B", "C"]
+    assert results[0].score == pytest.approx(1 / 61 + 1 / 62)
+
+
+def test_hybrid_strategy_combines_vector_and_keyword_results(tmp_path):
+    """ "meal $75": vector finds expenses by meaning ("meal"), keyword by the exact "75"."""
+    parts = make_search_parts(tmp_path)
+    retriever = create_retriever(
+        strategy="hybrid",
+        repository=parts["repository"],
+        embedder=parts["embedder"],
+        vector_store=parts["vector_store"],
+    )
+
+    results = retriever.retrieve("meal $75", top_k=1)
+
+    assert [result.chunk.metadata.doc_id for result in results] == ["expenses"]

@@ -8,13 +8,29 @@ from rag.documents import DocumentRepository
 from rag.models import RetrievedChunk
 from rag.retrieval.base import BaseRetriever
 
-# A run of letters or digits (any language). "$2,500" -> "2", "500"; "EXP-4" -> "exp", "4".
-WORD = re.compile(r"[^\W_]+")
+# A word is a run of letters/digits (any language), optionally joined by "-", "." or ","
+# to more letters/digits. That keeps codes and amounts whole, so "SEC-4" doesn't match
+# every chunk containing a 4:
+#   "SEC-7.2" -> "sec-7.2"    "$2,500" -> "2,500"    "EXP-4?" -> "exp-4"
+# A joining character only counts between two letters/digits, so sentence punctuation
+# ("end.", "yes, and") is dropped as usual.
+WORD = re.compile(r"[^\W_]+(?:[-.,][^\W_]+)*")
+
+# Filler words of questions and sentences, dropped before matching. Without this, a
+# chunk that happens to contain "what" and "about" outscores the one chunk that has
+# "SEC-4" in "What is SEC-4 about?". Policy words like "must" or "not" are kept.
+STOP_WORDS = {
+    "a", "an", "the", "is", "are", "was", "were", "be", "been", "do", "does", "did",
+    "what", "which", "who", "whom", "when", "where", "why", "how", "about",
+    "of", "to", "in", "on", "for", "with", "at", "by", "from", "as", "into",
+    "and", "or", "if", "it", "its", "this", "that", "these", "those", "there",
+    "i", "me", "my", "we", "our", "you", "your", "can", "say", "says",
+}  # fmt: skip
 
 
 def split_into_words(text: str) -> list[str]:
-    """Lowercase the text and return its words, the units BM25 counts and matches."""
-    return WORD.findall(text.lower())
+    """Lowercase the text and return its words minus STOP_WORDS: what BM25 matches."""
+    return [word for word in WORD.findall(text.lower()) if word not in STOP_WORDS]
 
 
 class KeywordRetriever(BaseRetriever):

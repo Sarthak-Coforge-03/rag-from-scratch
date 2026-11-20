@@ -3,13 +3,14 @@
 from rag.documents import DocumentRepository
 from rag.embedding import BaseEmbedder
 from rag.retrieval.base import BaseRetriever
+from rag.retrieval.hybrid import HybridRetriever
 from rag.retrieval.keyword import KeywordRetriever
 from rag.retrieval.vector import VectorRetriever
 from rag.vectorstore import BaseVectorStore
 
 # Strategy names accepted by create_retriever (RETRIEVER). Add new strategies here
 # and build them in create_retriever below.
-RETRIEVER_STRATEGIES = ("vector", "keyword")
+RETRIEVER_STRATEGIES = ("vector", "keyword", "hybrid")
 
 
 def create_retriever(
@@ -32,5 +33,11 @@ def create_retriever(
         )
     if strategy == "keyword":
         return KeywordRetriever(repository=repository)
+    if strategy == "hybrid":
+        vector_retriever = VectorRetriever(
+            embedder=embedder, vector_store=vector_store, repository=repository
+        )
+        keyword_retriever = KeywordRetriever(repository=repository)
+        return HybridRetriever(retrievers=[vector_retriever, keyword_retriever])
     valid_names = ", ".join(RETRIEVER_STRATEGIES)
     raise ValueError(f"Unknown retriever {strategy!r}; choose one of: {valid_names}")
