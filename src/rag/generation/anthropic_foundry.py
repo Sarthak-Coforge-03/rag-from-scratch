@@ -8,6 +8,7 @@ mode, so no speed setting is sent with the request.
 
 from anthropic import AnthropicFoundry
 from anthropic.types import Message
+from pydantic import BaseModel
 
 from rag.config import settings
 from rag.generation.base import BaseGenerator
@@ -45,13 +46,29 @@ class AnthropicFoundryGenerator(BaseGenerator):
         )
         return text_from_message(message)
 
+    def generate_structured(
+        self, system_prompt: str, user_message: str, output_type: type[BaseModel]
+    ) -> BaseModel:
+        """Send one question; Claude must reply in the shape of `output_type`.
 
-def text_from_message(message: Message) -> str:
-    """Join the answer's text blocks; ValueError if the answer is refused or cut off.
+        messages.parse sends output_type's JSON schema with the request, so the
+        API only returns JSON that fits it, and the SDK validates it into an
+        output_type instance (message.parsed_output).
+        """
+        message = self.client.messages.parse(
+            model=self.model_name,
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_message}],
+            max_tokens=self.max_tokens,
+            output_config={"effort": self.effort},
+            output_format=output_type,
+        )
+        ensure_answer_complete(message)
+        return message.parsed_output
 
-    Claude Opus 5.5 always thinks before answering, so the response holds thinking
-    blocks as well as text blocks. Only the text blocks are the answer.
-    """
+
+def ensure_answer_complete(message: Message) -> None:
+    """Raise ValueError if the model refused or was cut off, so no partial answer is used."""
     if message.stop_reason == "refusal":
         raise ValueError("The model declined to answer this question")
     if message.stop_reason == "max_tokens":
@@ -59,5 +76,13 @@ def text_from_message(message: Message) -> str:
             "The answer was cut off at LLM_MAX_TOKENS; raise it in .env and retry"
         )
 
+
+def text_from_message(message: Message) -> str:
+    """Join the answer's text blocks; ValueError if the answer is refused or cut off.
+
+    Claude Opus 5.5 always thinks before answering, so the response holds thinking
+    blocks as well as text blocks. Only the text blocks are the answer.
+    """
+    ensure_answer_complete(message)
     answer_parts = [block.text for block in message.content if block.type == "text"]
     return "".join(answer_parts)
