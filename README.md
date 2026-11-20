@@ -34,7 +34,7 @@ taken, `_1`, `_2`, … is added, so an existing index is never overwritten.
 
 ```sh
 CHUNK_STRATEGY=structural CHUNK_SIZE=800 CHUNK_OVERLAP=0 uv run python scripts/02_chunk.py
-# -> Creating new index 'structural-800' ... added 13
+# -> Creating new index 'structural-800' ... 13 added
 ```
 
 ### Update an index after the documents change
@@ -43,8 +43,8 @@ Pass the index name. It reuses the settings the index was created with (`CHUNK_*
 ignored) and only processes files that were added, edited or deleted.
 
 ```sh
-uv run python scripts/02_chunk.py --index structural-800
-# -> added 0 / updated 1 / unchanged 12 / removed 0
+uv run python scripts/02_chunk.py --sync structural-800
+# -> Documents : 0 added, 1 updated, 12 unchanged, 0 removed
 ```
 
 An unknown name stops with `Error: Index 'NAME' not found` and exit code 1.
@@ -62,7 +62,7 @@ What an index folder holds:
 ```
 indexes/structural-800/
   chunker.txt            StructuralChunker(size=800, overlap=0)
-  chunker_config.json    the same settings, read back on --index updates
+  chunker_config.json    the same settings, read back on --sync
   sql/docs.db            documents and chunk text
   vectors/<model>/       one folder per embedding model (embed step, coming next)
 ```
