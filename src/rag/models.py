@@ -80,6 +80,18 @@ class VectorMatch(BaseModel):
     distance: float
 
 
+class ChunkerConfig(BaseModel):
+    """The settings an index was created with, saved so an update rebuilds the same chunker.
+
+    Stored as chunker_config.json in the index folder. chunker.txt holds the readable
+    fingerprint; this holds the same settings in a form that can be read back.
+    """
+
+    strategy: str  # a key of CHUNKER_CLASSES, e.g. "structural"
+    chunk_size: int
+    chunk_overlap: int
+
+
 class IngestReport(BaseModel):
     """What one chunk-step run did to each document, by doc_id (each list sorted)."""
 
@@ -87,12 +99,3 @@ class IngestReport(BaseModel):
     updated: list[str] = []  # content hash changed, re-chunked and replaced
     unchanged: list[str] = []  # same content hash, skipped
     removed: list[str] = []  # stored before but the file is gone, deleted
-
-
-class IndexSummary(BaseModel):
-    """What one index folder holds, as reported by IndexManager.list_indexes()."""
-
-    name: str  # folder name under the index root, e.g. "token-800"
-    chunker_fingerprint: str  # settings that built its SQL data
-    embedder_fingerprints: list[str]  # one per vector folder, sorted
-    is_chunked: bool  # True once the chunk step has created sql/docs.db

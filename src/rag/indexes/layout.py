@@ -6,6 +6,7 @@ instead of building them by hand, so the structure is defined in one place:
 
     <root>/
       chunker.txt                  fingerprint of the chunker that built sql/
+      chunker_config.json          the same settings as JSON, to rebuild that chunker
       sql/docs.db                  documents and chunk text
       vectors/<embedder>/          one folder per embedding model
         embedder.txt               fingerprint of the model whose vectors live here
@@ -17,6 +18,7 @@ from pathlib import Path
 from pydantic import BaseModel
 
 CHUNKER_FILE_NAME = "chunker.txt"
+CHUNKER_CONFIG_FILE_NAME = "chunker_config.json"
 EMBEDDER_FILE_NAME = "embedder.txt"
 SQL_FOLDER_NAME = "sql"
 DATABASE_FILE_NAME = "docs.db"
@@ -37,6 +39,11 @@ class IndexLayout(BaseModel):
     def chunker_file(self) -> Path:
         """File recording which chunker built this index's SQL data."""
         return self.root / CHUNKER_FILE_NAME
+
+    @property
+    def chunker_config_file(self) -> Path:
+        """File with the chunker settings as JSON, read back when the index is updated."""
+        return self.root / CHUNKER_CONFIG_FILE_NAME
 
     @property
     def sql_dir(self) -> Path:
